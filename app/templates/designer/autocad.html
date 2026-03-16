@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Скрипты AutoCAD — Проектировщик{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-designer">
+    {% include "designer/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Проектировщик</div>
+        <h1 class="page-title" style="margin-bottom:24px">Скрипты AutoCAD</h1>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+            {% for script in scripts %}
+            <div class="form-card" style="display:flex;align-items:center;gap:24px;padding:18px 24px">
+                <div style="flex:1">
+                    <div style="font-size:14px;color:#f0ece4;font-weight:400;margin-bottom:4px">
+                        {{ script.name }}
+                    </div>
+                    <div style="font-size:12px;color:#4a4845;margin-bottom:8px">
+                        {{ script.description }}
+                    </div>
+                    <span style="font-size:9px;letter-spacing:2px;color:#7a6eaa;background:rgba(122,110,170,.1);padding:3px 8px;border-radius:2px;text-transform:uppercase">
+                        {{ script.type }} {{ script.ext }}
+                    </span>
+                </div>
+                <a href="{{ url_for('static', filename='autocad/' + script.filename) }}"
+                   class="btn btn--ghost" download>
+                    ↓ Скачать
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-top:24px;padding:16px 20px;background:#0f0f11;border:1px solid rgba(255,255,255,.06);border-radius:4px">
+            <div style="font-size:10px;letter-spacing:2px;color:#4a4845;text-transform:uppercase;margin-bottom:8px">Как установить скрипт</div>
+            <div style="font-size:12px;color:#8a8680;line-height:1.8">
+                1. Скачайте файл <code style="color:#b98c50;background:rgba(185,140,80,.08);padding:1px 5px;border-radius:2px">.lsp</code> или <code style="color:#b98c50;background:rgba(185,140,80,.08);padding:1px 5px;border-radius:2px">.scr</code><br>
+                2. В AutoCAD введите команду <code style="color:#b98c50;background:rgba(185,140,80,.08);padding:1px 5px;border-radius:2px">APPLOAD</code> для .lsp файлов<br>
+                3. Для .scr файлов используйте команду <code style="color:#b98c50;background:rgba(185,140,80,.08);padding:1px 5px;border-radius:2px">SCRIPT</code><br>
+                4. После загрузки вызывайте команду скрипта из командной строки AutoCAD
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

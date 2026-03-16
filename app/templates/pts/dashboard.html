@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}ПТС — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+.theme-pts .metric-card--accent{border-top-color:#5a8cc8}
+.to-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.to-item:last-child{border:none}
+.rec-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.rec-item:last-child{border:none}
+.rec-type-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.rec-dot-to{background:#4caf6b}
+.rec-dot-repair{background:#e06060}
+.rec-dot-pnr{background:#b98c50}
+.rec-dot-request{background:#5a8cc8}
+.rec-dot-other{background:#3a3835}
+.rec-dot-upgrade{background:#7a6eaa}
+.rec-info{flex:1;min-width:0}
+.rec-title{font-size:12px;color:#c0bab2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-sub{font-size:10px;color:#3a3835;margin-top:2px}
+.rec-date{font-size:10px;color:#2a2825;white-space:nowrap}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+
+    {% include "pts/_sidebar.html" %}
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Проектно-технический сервис</div>
+                <h1 class="page-title">Дашборд ПТС</h1>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('pts.create_object', section='service') }}" class="btn btn--ghost">+ ТО объект</a>
+                <a href="{{ url_for('pts.create_object', section='installation') }}" class="btn btn--primary">+ Монтаж</a>
+            </div>
+        </div>
+
+        <div class="metrics-grid" style="margin-bottom:24px">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Всего объектов</div>
+                <div class="metric-value">{{ stats.total }}</div>
+                <div class="metric-sub">В базе</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">На обслуживании</div>
+                <div class="metric-value" style="color:#4caf6b">{{ stats.active }}</div>
+                <div class="metric-sub">Активных ТО</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Монтажей</div>
+                <div class="metric-value">{{ stats.installations }}</div>
+                <div class="metric-sub">В работе</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Ближайшее ТО</div>
+                <div class="metric-value" style="font-size:16px;font-family:var(--font)">
+                    {% if upcoming_to %}
+                    {{ upcoming_to[0].next_to_date.strftime('%d.%m.%Y') }}
+                    {% else %}—{% endif %}
+                </div>
+                <div class="metric-sub">
+                    {% if upcoming_to %}{{ upcoming_to[0].name[:20] }}{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div class="form-card" style="padding:18px 20px">
+                <div class="section-header" style="margin-bottom:12px">
+                    <div class="section-title">Ближайшие ТО</div>
+                    <a href="{{ url_for('pts.service_list') }}" class="section-link">Все →</a>
+                </div>
+                {% if upcoming_to %}
+                    {% for obj in upcoming_to %}
+                    <div class="to-item">
+                        <a href="{{ url_for('pts.object_detail', obj_id=obj.id) }}"
+                           style="color:#c0bab2;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                            {{ obj.name }}
+                        </a>
+                        <span style="font-size:11px;color:#b98c50;white-space:nowrap;margin-left:12px">
+                            {{ obj.next_to_date.strftime('%d.%m.%Y') }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div style="padding:20px;text-align:center;color:#2a2825;font-size:12px">
+                    Нет запланированных ТО
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-card" style="padding:18px 20px">
+                <div class="section-header" style="margin-bottom:12px">
+                    <div class="section-title">Последние записи</div>
+                </div>
+                {% if recent_records %}
+                    {% for rec in recent_records %}
+                    <div class="rec-item">
+                        <div class="rec-type-dot rec-dot-{{ rec.record_type }}"></div>
+                        <div class="rec-info">
+                            <div class="rec-title">
+                                <a href="{{ url_for('pts.object_detail', obj_id=rec.object_id) }}"
+                                   style="color:#c0bab2">{{ rec.object.name }}</a>
+                            </div>
+                            <div class="rec-sub">
+                                {{ rec.type_label }} · {{ rec.description[:40] }}{% if rec.description|length > 40 %}...{% endif %}
+                            </div>
+                        </div>
+                        <div class="rec-date">{{ rec.date.strftime('%d.%m.%Y') }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div style="padding:20px;text-align:center;color:#2a2825;font-size:12px">
+                    Записей пока нет
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:14px">Быстрый переход</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <a href="{{ url_for('pts.service_list') }}"
+               style="background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-left:3px solid #4caf6b;border-radius:4px;padding:14px 20px;min-width:140px;transition:all .2s">
+                <div style="font-size:18px;margin-bottom:6px">🔧</div>
+                <div style="font-size:12px;color:#c0bab2;margin-bottom:3px">Техобслуживание</div>
+                <div style="font-size:11px;color:#3a3835">Объекты на ТО</div>
+            </a>
+            <a href="{{ url_for('pts.installation_list') }}"
+               style="background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-left:3px solid #5a8cc8;border-radius:4px;padding:14px 20px;min-width:140px;transition:all .2s">
+                <div style="font-size:18px;margin-bottom:6px">🏗</div>
+                <div style="font-size:12px;color:#c0bab2;margin-bottom:3px">Монтажи</div>
+                <div style="font-size:11px;color:#3a3835">Объекты в монтаже</div>
+            </a>
+            <a href="{{ url_for('pts.objects') }}"
+               style="background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-left:3px solid #b98c50;border-radius:4px;padding:14px 20px;min-width:140px;transition:all .2s">
+                <div style="font-size:18px;margin-bottom:6px">📂</div>
+                <div style="font-size:12px;color:#c0bab2;margin-bottom:3px">Все категории</div>
+                <div style="font-size:11px;color:#3a3835">{{ stats.categories }} категорий</div>
+            </a>
+        </div>
+
+        {% if categories %}
+        <div class="section-title" style="margin-bottom:14px">Категории объектов</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            {% for cat in categories %}
+            <a href="{{ url_for('pts.objects', cat=cat.id) }}"
+               style="background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:12px 18px;text-align:center;min-width:120px;transition:all .2s;border-left:3px solid {{ cat.color }}">
+                <div style="font-size:18px;margin-bottom:6px">🏢</div>
+                <div style="font-size:12px;color:#c0bab2;margin-bottom:3px">{{ cat.name }}</div>
+                <div style="font-size:11px;color:#3a3835">{{ cat.objects.count() }} объектов</div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

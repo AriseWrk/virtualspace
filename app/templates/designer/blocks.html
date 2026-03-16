@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Blocks — Проектировщик{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-designer">
+    {% include "designer/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Проектировщик</div>
+        <h1 class="page-title">Проекты</h1>
+        <div class="empty-state">
+            <div class="empty-icon">🗂</div>
+            <div class="empty-text">Раздел в разработке</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

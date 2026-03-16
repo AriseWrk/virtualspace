@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Склад — АБ Радонеж{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Управление ТМЦ</div>
+            <h1 class="page-title">Склад</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('warehouse.orders') }}" class="btn btn--ghost">Заказы</a>
+            <a href="{{ url_for('warehouse.create_order') }}" class="btn btn--ghost">+ Заказ</a>
+            <a href="{{ url_for('warehouse.add_item') }}" class="btn btn--primary">+ Позиция</a>
+            <a href="{{ url_for('warehouse.export_items') }}" class="btn btn--ghost">↓ Excel</a>
+        </div>
+    </div>
+
+    <form method="GET" class="filter-bar">
+        <input type="text" name="q" value="{{ search }}" placeholder="Поиск по наименованию..." class="filter-input">
+        <select name="category" class="filter-select">
+            <option value="">Все категории</option>
+            {% for cat in categories %}
+            {% set is_active = request.args.get('category', type=int) == cat.id %}
+            {% if is_active %}
+            <option value="{{ cat.id }}" selected>{{ cat.name }}</option>
+            {% else %}
+            <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn--primary">Найти</button>
+        <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost">Сброс</a>
+    </form>
+
+    {% if items %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Наименование</th>
+                    <th>Артикул</th>
+                    <th>Категория</th>
+                    <th>Кол-во</th>
+                    <th>Ед.</th>
+                    <th>Место</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                {% if item.is_low_stock %}
+                <tr class="row--warn">
+                {% else %}
+                <tr>
+                {% endif %}
+                    <td class="td-name">{{ item.name }}</td>
+                    <td class="td-muted">{{ item.article or '—' }}</td>
+                    <td class="td-muted">{{ item.category.name if item.category else '—' }}</td>
+                    {% if item.is_low_stock %}
+                    <td class="td-qty td-qty--low">
+                    {% else %}
+                    <td class="td-qty">
+                    {% endif %}
+                        {{ item.quantity | int if item.quantity == item.quantity | int else item.quantity }}
+                    </td>
+                    <td class="td-muted">{{ item.unit }}</td>
+                    <td class="td-muted">{{ item.location or '—' }}</td>
+                    <td>
+                        {% if item.is_low_stock %}
+                        <span class="badge badge--warn">Мало</span>
+                        {% else %}
+                        <span class="badge badge--ok">В норме</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-actions">
+                        <a href="{{ url_for('warehouse.edit_item', item_id=item.id) }}" class="action-link">Ред.</a>
+                        <form method="POST" action="{{ url_for('warehouse.delete_item', item_id=item.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Удалить позицию?')">
+                            <button type="submit" class="action-link action-link--danger">Удал.</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Всего позиций: {{ items|length }}</div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <div class="empty-text">
+            {% if search %}
+            Ничего не найдено по запросу «{{ search }}»
+            {% else %}
+            Склад пуст
+            {% endif %}
+        </div>
+        <a href="{{ url_for('warehouse.add_item') }}" class="btn btn--primary">Добавить позицию</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

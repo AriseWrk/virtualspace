@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Калькулятор кабеля — Утилиты{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-utils .sidebar-link.active{background:rgba(185,140,80,.06);color:#b98c50;border-left-color:#b98c50}
+.theme-utils .page-tag{color:#b98c50}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.calc-block{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:22px 24px}
+.calc-title{font-size:10px;letter-spacing:3px;color:#4a4845;text-transform:uppercase;margin-bottom:18px}
+.calc-field{margin-bottom:14px}
+.calc-label{font-size:10px;letter-spacing:2px;color:#4a4845;text-transform:uppercase;margin-bottom:7px;display:block}
+.calc-input{width:100%;background:#0a0a0c;border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:10px 12px;color:#f0ece4;font-family:inherit;font-size:13px;outline:none;transition:border-color .2s}
+.calc-input:focus{border-color:rgba(185,140,80,.4)}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.result-row:last-child{border:none}
+.result-label{font-size:12px;color:#4a4845}
+.result-value{font-size:18px;color:#f0ece4;font-weight:300}
+.result-unit{font-size:11px;color:#4a4845;margin-left:4px}
+.result-accent{color:#b98c50}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-utils">
+    {% include "utilities/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Утилиты / Калькуляторы</div>
+        <h1 class="page-title" style="margin-bottom:24px">Калькулятор кабеля</h1>
+
+        <div class="calc-grid">
+            <div class="calc-block">
+                <div class="calc-title">Параметры</div>
+
+                <div class="calc-field">
+                    <label class="calc-label">Длина трассы (м)</label>
+                    <input type="number" id="length" class="calc-input" value="100" min="1" oninput="calc()">
+                </div>
+                <div class="calc-field">
+                    <label class="calc-label">Запас (%)</label>
+                    <input type="number" id="reserve" class="calc-input" value="15" min="0" max="50" oninput="calc()">
+                </div>
+                <div class="calc-field">
+                    <label class="calc-label">Количество линий</label>
+                    <input type="number" id="lines" class="calc-input" value="1" min="1" oninput="calc()">
+                </div>
+                <div class="calc-field">
+                    <label class="calc-label">Тип кабеля</label>
+                    <select id="cable_type" class="calc-input" onchange="calc()">
+                        <option value="utp">UTP Cat5e (бухта 305м)</option>
+                        <option value="utp6">UTP Cat6 (бухта 305м)</option>
+                        <option value="coax">Коаксиал RG-6 (бухта 200м)</option>
+                        <option value="fiber">Оптика (бухта 1000м)</option>
+                        <option value="custom">Произвольная бухта</option>
+                    </select>
+                </div>
+                <div class="calc-field" id="custom_field" style="display:none">
+                    <label class="calc-label">Длина бухты (м)</label>
+                    <input type="number" id="coil_size" class="calc-input" value="305" min="1" oninput="calc()">
+                </div>
+            </div>
+
+            <div class="calc-block">
+                <div class="calc-title">Результат</div>
+                <div class="result-row">
+                    <span class="result-label">Длина на 1 линию</span>
+                    <span><span class="result-value" id="r_single">—</span><span class="result-unit">м</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Итого с запасом</span>
+                    <span><span class="result-value result-accent" id="r_total">—</span><span class="result-unit">м</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Количество бухт</span>
+                    <span><span class="result-value result-accent" id="r_coils">—</span><span class="result-unit">шт</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Остаток в последней бухте</span>
+                    <span><span class="result-value" id="r_rest">—</span><span class="result-unit">м</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Общая длина кабеля</span>
+                    <span><span class="result-value" id="r_all">—</span><span class="result-unit">м</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const COILS = {utp:305, utp6:305, coax:200, fiber:1000, custom:305};
+
+function calc() {
+    const len = parseFloat(document.getElementById('length').value) || 0;
+    const res = parseFloat(document.getElementById('reserve').value) || 0;
+    const lines = parseInt(document.getElementById('lines').value) || 1;
+    const type = document.getElementById('cable_type').value;
+
+    document.getElementById('custom_field').style.display = type === 'custom' ? 'block' : 'none';
+    const coilSize = type === 'custom'
+        ? (parseFloat(document.getElementById('coil_size').value) || 305)
+        : COILS[type];
+
+    const single = Math.ceil(len * (1 + res / 100));
+    const total = single * lines;
+    const coils = Math.ceil(total / coilSize);
+    const rest = coils * coilSize - total;
+
+    document.getElementById('r_single').textContent = single;
+    document.getElementById('r_total').textContent = total;
+    document.getElementById('r_coils').textContent = coils;
+    document.getElementById('r_rest').textContent = rest;
+    document.getElementById('r_all').textContent = total;
+}
+calc();
+</script>
+{% endblock %}

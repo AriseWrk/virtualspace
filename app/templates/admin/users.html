@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Пользователи — Админ{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Администрирование</div>
+            <h1 class="page-title">Пользователи</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.categories') }}" class="btn btn--ghost">Категории склада</a>
+            <a href="{{ url_for('admin.create_user') }}" class="btn btn--primary">+ Создать пользователя</a>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Логин</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    <th>Последний вход</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="td-name">{{ user.full_name }}</td>
+                    <td class="td-muted">{{ user.username }}</td>
+                    <td>{{ config.ROLES.get(user.role, user.role) }}</td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="badge badge--ok">Активен</span>
+                        {% else %}
+                        <span class="badge badge--cancelled">Заблокирован</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-date">
+                        {% if user.last_login %}
+                        {{ user.last_login.strftime('%d.%m.%Y %H:%M') }}
+                        {% else %}
+                        <span class="td-muted">Не входил</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-actions">
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="action-link">Ред.</a>
+                        {% if user.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}" style="display:inline">
+                            {% if user.is_active %}
+                            <button type="submit" class="action-link action-link--danger">Блок.</button>
+                            {% else %}
+                            <button type="submit" class="action-link">Разблок.</button>
+                            {% endif %}
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display:inline"
+                              onsubmit="return confirm('Удалить пользователя {{ user.full_name }}?')">
+                            <button type="submit" class="action-link action-link--danger">Удал.</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Всего пользователей: {{ users|length }}</div>
+</div>
+{% endblock %}

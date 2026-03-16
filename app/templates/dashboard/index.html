@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}АБ Радонеж — Добро пожаловать{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-space {
+    position: relative;
+    min-height: calc(100vh - 52px);
+    background: #060608;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#space-canvas {
+    position: absolute;
+    inset: 0; z-index: 0;
+    width: 100%; height: 100%;
+}
+.space-center {
+    position: relative;
+    z-index: 5;
+    text-align: center;
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.greet-tag {
+    font-size: 10px; letter-spacing: 5px; color: #b98c50;
+    text-transform: uppercase; margin-bottom: 16px;
+    opacity: 0; animation: fadeup .8s .3s forwards;
+}
+.greet-name {
+    font-size: 56px; color: #f0ece4; font-weight: 200;
+    line-height: 1; margin-bottom: 10px; letter-spacing: 1px;
+    opacity: 0; animation: fadeup .8s .5s forwards;
+    font-family: 'Bebas Neue', sans-serif;
+}
+.greet-role {
+    font-size: 11px; color: #4a4845; letter-spacing: 4px;
+    text-transform: uppercase; margin-bottom: 20px;
+    opacity: 0; animation: fadeup .8s .7s forwards;
+}
+.greet-divider {
+    width: 40px; height: 1px;
+    background: rgba(185,140,80,.35);
+    margin: 0 auto 36px;
+    opacity: 0; animation: fadeup .6s .85s forwards;
+}
+.space-cards {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    justify-content: center; max-width: 920px;
+    opacity: 0; animation: fadeup .8s 1s forwards;
+}
+.space-card {
+    background: rgba(15,15,17,.75);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 6px; padding: 18px 20px;
+    width: 140px; text-align: center;
+    transition: all .2s; backdrop-filter: blur(6px);
+}
+.space-card:hover { transform: translateY(-3px); color: inherit; }
+.space-card--default:hover {
+    border-color: rgba(185,140,80,.4);
+    background: rgba(185,140,80,.06);
+}
+.space-card--academy {
+    border-color: rgba(90,140,200,.15);
+}
+.space-card--academy:hover {
+    border-color: rgba(90,140,200,.5);
+    background: rgba(90,140,200,.06);
+}
+.space-card--server {
+    border-color: rgba(60,180,120,.12);
+}
+.space-card--server:hover {
+    border-color: rgba(60,180,120,.45);
+    background: rgba(60,180,120,.06);
+}
+.space-card--garage {
+    border-color: rgba(200,100,60,.12);
+}
+.space-card--garage:hover {
+    border-color: rgba(200,100,60,.45);
+    background: rgba(200,100,60,.06);
+}
+.space-card--pts {
+    border-color: rgba(90,140,200,.12);
+}
+.space-card--pts:hover {
+    border-color: rgba(90,140,200,.4);
+    background: rgba(90,140,200,.06);
+}
+.space-card-icon { font-size: 22px; margin-bottom: 9px; }
+.space-card-title {
+    font-size: 11px; color: #c0bab2;
+    letter-spacing: .5px; margin-bottom: 3px; font-weight: 400;
+}
+.space-card-desc { font-size: 10px; color: #3a3835; }
+.space-time {
+    position: absolute; bottom: 24px;
+    left: 0; right: 0; text-align: center;
+    z-index: 5; opacity: 0;
+    animation: fadeup .6s 1.3s forwards;
+}
+.space-time-text { font-size: 11px; color: #252320; letter-spacing: 2px; }
+@keyframes fadeup {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-space">
+    <canvas id="space-canvas"></canvas>
+
+    <div class="space-center">
+        <div class="greet-tag">Добро пожаловать</div>
+        <div class="greet-name">
+            {{ current_user.full_name.split()[1] if current_user.full_name.split()|length > 1 else current_user.full_name }}
+        </div>
+        <div class="greet-role">
+            {{ config.ROLES.get(current_user.role, current_user.role) }} · АБ Радонеж
+        </div>
+        <div class="greet-divider"></div>
+
+        <div class="space-cards">
+
+            {% if current_user.has_warehouse_access() %}
+            <a href="{{ url_for('warehouse.index') }}" class="space-card space-card--default">
+                <div class="space-card-icon">📦</div>
+                <div class="space-card-title">Склад</div>
+                <div class="space-card-desc">ТМЦ и заказы</div>
+            </a>
+            {% endif %}
+
+            {% if current_user.role in ('engineer', 'director') %}
+            <a href="{{ url_for('engineer.dashboard') }}" class="space-card space-card--default">
+                <div class="space-card-icon">⚙️</div>
+                <div class="space-card-title">Инженер</div>
+                <div class="space-card-desc">Объекты и тесты</div>
+            </a>
+            {% endif %}
+
+            {% if current_user.role in ('designer', 'director') %}
+            <a href="{{ url_for('designer.dashboard') }}" class="space-card space-card--default">
+                <div class="space-card-icon">📐</div>
+                <div class="space-card-title">Проектировщик</div>
+                <div class="space-card-desc">AutoCAD и проекты</div>
+            </a>
+            {% endif %}
+
+            {% if current_user.role in ('office', 'pts', 'director') %}
+            <a href="{{ url_for('pts.dashboard') }}" class="space-card space-card--pts">
+                <div class="space-card-icon">🏢</div>
+                <div class="space-card-title">ПТС</div>
+                <div class="space-card-desc">Объекты и сервис</div>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('academy.dashboard') }}" class="space-card space-card--academy">
+                <div class="space-card-icon">🎓</div>
+                <div class="space-card-title">Обучение</div>
+                <div class="space-card-desc">Курсы и тесты</div>
+            </a>
+
+            <a href="{{ url_for('utilities.dashboard') }}" class="space-card space-card--default">
+                <div class="space-card-icon">🔧</div>
+                <div class="space-card-title">Утилиты</div>
+                <div class="space-card-desc">Калькуляторы и ПО</div>
+            </a>
+
+            {% if current_user.role in ('engineer', 'designer', 'director') %}
+            <a href="{{ url_for('server_room.dashboard') }}" class="space-card space-card--server">
+                <div class="space-card-icon">🖥</div>
+                <div class="space-card-title">Серверная</div>
+                <div class="space-card-desc">Мониторинг и схемы</div>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('garage.dashboard') }}" class="space-card space-card--garage">
+                <div class="space-card-icon">🚗</div>
+                <div class="space-card-title">Гараж</div>
+                <div class="space-card-desc">Транспорт и заявки</div>
+            </a>
+
+            {% if current_user.role == 'director' %}
+            <a href="{{ url_for('admin.users') }}" class="space-card space-card--default">
+                <div class="space-card-icon">👥</div>
+                <div class="space-card-title">Администрирование</div>
+                <div class="space-card-desc">Пользователи</div>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('auth.change_password') }}" class="space-card space-card--default">
+                <div class="space-card-icon">🔑</div>
+                <div class="space-card-title">Профиль</div>
+                <div class="space-card-desc">Смена пароля</div>
+            </a>
+
+        </div>
+    </div>
+
+    <div class="space-time">
+        <div class="space-time-text" id="space-clock"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const canvas = document.getElementById('space-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, stars = [], nebulae = [];
+
+function resize() {
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+}
+function initStars() {
+    stars = [];
+    for (let i = 0; i < 280; i++) {
+        stars.push({
+            x: Math.random()*W, y: Math.random()*H,
+            r: .3+Math.random()*1.4, a: .2+Math.random()*.8,
+            sp: .003+Math.random()*.009,
+            ph: Math.random()*6.28,
+            big: Math.random()>.85
+        });
+    }
+    nebulae = [];
+    const cl = ['rgba(185,140,80,','rgba(80,60,140,','rgba(30,50,110,','rgba(60,160,110,','rgba(160,80,60,'];
+    for (let i = 0; i < 8; i++) {
+        nebulae.push({
+            x: Math.random()*W, y: Math.random()*H,
+            r: 90+Math.random()*190,
+            c: cl[i % cl.length],
+            a: .012+Math.random()*.028
+        });
+    }
+}
+function draw() {
+    ctx.fillStyle = '#060608';
+    ctx.fillRect(0, 0, W, H);
+    nebulae.forEach(n => {
+        const g = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r);
+        g.addColorStop(0, n.c+n.a+')');
+        g.addColorStop(1, n.c+'0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.28); ctx.fill();
+    });
+    stars.forEach(s => {
+        s.ph += s.sp;
+        const a = s.a*(.4+.6*(.5+.5*Math.sin(s.ph)));
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.28);
+        ctx.fillStyle = `rgba(240,236,228,${a})`; ctx.fill();
+        if (s.big) {
+            ctx.strokeStyle = `rgba(240,236,228,${a*.22})`;
+            ctx.lineWidth = .4;
+            ctx.beginPath();
+            ctx.moveTo(s.x-s.r*4,s.y); ctx.lineTo(s.x+s.r*4,s.y);
+            ctx.moveTo(s.x,s.y-s.r*4); ctx.lineTo(s.x,s.y+s.r*4);
+            ctx.stroke();
+        }
+    });
+    requestAnimationFrame(draw);
+}
+resize(); initStars(); draw();
+window.addEventListener('resize', () => { resize(); initStars(); });
+
+function updateClock() {
+    const d = new Date();
+    const date = d.toLocaleDateString('ru-RU', {
+        weekday:'long', day:'numeric', month:'long', year:'numeric'
+    });
+    const time = d.toLocaleTimeString('ru-RU', {
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+    const el = document.getElementById('space-clock');
+    if (el) el.textContent = date + ' · ' + time;
+}
+updateClock(); setInterval(updateClock, 1000);
+</script>
+{% endblock %}

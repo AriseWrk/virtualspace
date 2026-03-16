@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Инженер — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-engineer">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">Раздел</span>
+            <a href="{{ url_for('engineer.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('engineer.handbook') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.handbook' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M2 2h12v1H2zm0 3h8v1H2zm0 3h10v1H2zm0 3h6v1H2z"/></svg>
+                Учебное пособие
+            </a>
+            <a href="{{ url_for('engineer.tests') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.tests' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".15"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                Тесты
+            </a>
+            <a href="{{ url_for('engineer.projects') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.projects' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="10" rx="1" opacity=".15"/><path d="M1 6h14v1H1zm4-3v1m6-1v1"/></svg>
+                Проекты
+            </a>
+        </div>
+        <div class="sidebar-section">
+            <span class="sidebar-label">Справочники</span>
+            <a href="{{ url_for('engineer.regulations') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.regulations' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
+                Нормативная база
+            </a>
+            <a href="{{ url_for('engineer.software') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.software' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="9" rx="1" opacity=".15"/><path d="M4 7l2 2-2 2m4 0h3"/></svg>
+                ПО
+            </a>
+            <a href="{{ url_for('engineer.equipment') }}"
+               class="sidebar-link {% if request.endpoint == 'engineer.equipment' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3" opacity=".15"/><path d="M8 1v2m0 10v2M1 8h2m10 0h2M3.5 3.5l1.5 1.5m6 6l1.5 1.5M3.5 12.5l1.5-1.5m6-6l1.5-1.5"/></svg>
+                Оборудование
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Рабочее пространство</div>
+                <h1 class="page-title">Дашборд инженера</h1>
+            </div>
+            <div class="page-meta">
+                <div class="page-date" id="js-date"></div>
+                <div class="online-badge"><span class="status-dot"></span> Онлайн</div>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Назначенных объектов</div>
+                <div class="metric-value">—</div>
+                <div class="metric-sub">В работе</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Открытых заказов</div>
+                <div class="metric-value">{{ stats.open_orders }}</div>
+                <div class="metric-sub">Со склада</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Всего заказов</div>
+                <div class="metric-value">{{ stats.total_orders }}</div>
+                <div class="metric-sub">За всё время</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Тестов пройдено</div>
+                <div class="metric-value">—</div>
+                <div class="metric-sub">Прогресс</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">Мои заказы со склада</div>
+                <a href="{{ url_for('warehouse.orders') }}" class="section-link">Все заказы →</a>
+            </div>
+            {% if my_orders %}
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Объект</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in my_orders %}
+                        <tr>
+                            <td class="td-number">{{ order.number }}</td>
+                            <td>{{ order.object_name }}</td>
+                            <td>
+                                <span class="badge badge--{{ order.status }}">
+                                    {{ order.status_label }}
+                                </span>
+                            </td>
+                            <td class="td-date">{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">Заказов пока нет</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title" style="margin-bottom:14px">Быстрые действия</div>
+            <div class="quick-actions">
+                <a href="{{ url_for('engineer.tests') }}" class="quick-btn">
+                    <span class="quick-icon">✅</span><span>Тесты</span>
+                </a>
+                <a href="{{ url_for('engineer.handbook') }}" class="quick-btn">
+                    <span class="quick-icon">📖</span><span>Пособие</span>
+                </a>
+                <a href="{{ url_for('engineer.regulations') }}" class="quick-btn">
+                    <span class="quick-icon">📄</span><span>Нормативы</span>
+                </a>
+                <a href="{{ url_for('engineer.equipment') }}" class="quick-btn">
+                    <span class="quick-icon">⚙️</span><span>Оборудование</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const d = new Date();
+document.getElementById('js-date').textContent =
+    d.toLocaleDateString('ru-RU', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Сеть — Серверная{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
+.theme-server .page-tag{color:#3cb478}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-with-sidebar theme-server">
+    {% include "server_room/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Серверная</div>
+        <h1 class="page-title">Сеть</h1>
+        <div class="empty-state" style="margin-top:24px">
+            <div class="empty-icon">🌐</div>
+            <div class="empty-text">Схема сети в разработке</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

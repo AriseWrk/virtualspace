@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{% if obj %}Редактировать{% else %}Новый объект{% endif %} — ПТС{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">ПТС</span>
+            <a href="{{ url_for('pts.dashboard') }}" class="sidebar-link">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('pts.objects') }}" class="sidebar-link active">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5v6l7 4 7-4V5z" opacity=".15"/><path d="M8 1L1 5l7 4 7-4z" opacity=".6" fill="currentColor"/></svg>
+                Объекты
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">ПТС</div>
+                <h1 class="page-title">{% if obj %}Редактировать объект{% else %}Новый объект{% endif %}</h1>
+            </div>
+            <a href="{{ url_for('pts.objects') }}" class="btn btn--ghost">← Назад</a>
+        </div>
+
+        <form method="POST" class="form-card" style="max-width:800px">
+
+            <div class="form-section-title">Основная информация</div>
+
+            <div class="form-row">
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Название объекта *</label>
+                    <input type="text" name="name" class="form-input" required
+                           value="{{ obj.name if obj else '' }}"
+                           placeholder="Почта России №123, г. Москва">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Статус</label>
+                    <select name="status" class="form-select">
+                        {% for val, lbl in [('active','На обслуживании'),('warranty','На гарантии'),('one_time','Разовый'),('inactive','Снят')] %}
+                        {% set is_sel = (obj and obj.status == val) or (not obj and val == 'active') %}
+                        {% if is_sel %}
+                        <option value="{{ val }}" selected>{{ lbl }}</option>
+                        {% else %}
+                        <option value="{{ val }}">{{ lbl }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Адрес</label>
+                    <input type="text" name="address" class="form-input"
+                           value="{{ obj.address if obj else '' }}"
+                           placeholder="г. Москва, ул. Тверская, д. 1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Категория *</label>
+                    <select name="category_id" class="form-select" required>
+                        {% for cat in categories %}
+                        {% set is_sel = (obj and obj.category_id == cat.id) or (not obj and preselect_cat == cat.id) %}
+                        {% if is_sel %}
+                        <option value="{{ cat.id }}" selected>{{ cat.name }}</option>
+                        {% else %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Установленные системы</label>
+                    <input type="text" name="systems" class="form-input"
+                           value="{{ obj.systems if obj else '' }}"
+                           placeholder="СОТ, СКУД, ОС, СКС">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ответственный инженер</label>
+                    <select name="engineer_id" class="form-select">
+                        <option value="">— Не назначен —</option>
+                        {% for eng in engineers %}
+                        {% set is_sel = obj and obj.engineer_id == eng.id %}
+                        {% if is_sel %}
+                        <option value="{{ eng.id }}" selected>{{ eng.full_name }}</option>
+                        {% else %}
+                        <option value="{{ eng.id }}">{{ eng.full_name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Дата ввода в эксплуатацию</label>
+                    <input type="date" name="commissioned_at" class="form-input"
+                           value="{{ obj.commissioned_at.strftime('%Y-%m-%d') if obj and obj.commissioned_at else '' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Следующее ТО</label>
+                    <input type="date" name="next_to_date" class="form-input"
+                           value="{{ obj.next_to_date.strftime('%Y-%m-%d') if obj and obj.next_to_date else '' }}">
+                </div>
+            </div>
+
+            <div class="form-section-title">Контакты заказчика</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Организация</label>
+                    <input type="text" name="client_name" class="form-input"
+                           value="{{ obj.client_name if obj else '' }}"
+                           placeholder="ФГУП «Почта России»">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Контактное лицо</label>
+                    <input type="text" name="client_contact" class="form-input"
+                           value="{{ obj.client_contact if obj else '' }}"
+                           placeholder="Иванов Иван Иванович">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" name="client_phone" class="form-input"
+                           value="{{ obj.client_phone if obj else '' }}"
+                           placeholder="+7 (495) 000-00-00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="client_email" class="form-input"
+                           value="{{ obj.client_email if obj else '' }}"
+                           placeholder="contact@example.com">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Примечания</label>
+                <textarea name="notes" class="form-textarea" rows="3"
+                          placeholder="Особенности объекта, схема доступа...">{{ obj.notes if obj else '' }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('pts.objects') }}" class="btn btn--ghost">Отмена</a>
+                <button type="submit" class="btn btn--primary">
+                    {% if obj %}Сохранить{% else %}Создать объект{% endif %}
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Документация — Серверная{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
+.theme-server .page-tag{color:#3cb478}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.doc-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:18px 20px;transition:all .2s}
+.doc-card:hover{border-color:rgba(60,180,120,.3);transform:translateY(-2px);color:inherit}
+.doc-icon{font-size:22px;margin-bottom:10px}
+.doc-title{font-size:13px;color:#f0ece4;font-weight:400;margin-bottom:5px}
+.doc-desc{font-size:11px;color:#4a4845;line-height:1.6}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-server">
+    {% include "server_room/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Серверная</div>
+        <h1 class="page-title" style="margin-bottom:24px">Документация</h1>
+        <div class="doc-grid">
+            <div class="doc-card">
+                <div class="doc-icon">🗺</div>
+                <div class="doc-title">Схема сети</div>
+                <div class="doc-desc">Топология локальной сети, VLAN, маршрутизация</div>
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon">📋</div>
+                <div class="doc-title">Инвентаризация</div>
+                <div class="doc-desc">Полный перечень серверного и сетевого оборудования</div>
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon">🔐</div>
+                <div class="doc-title">Доступы и пароли</div>
+                <div class="doc-desc">Хранилище учётных данных (только для администраторов)</div>
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon">🔄</div>
+                <div class="doc-title">Регламент резервного копирования</div>
+                <div class="doc-desc">Расписание, политики хранения, проверка бэкапов</div>
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon">⚠️</div>
+                <div class="doc-title">Аварийные процедуры</div>
+                <div class="doc-desc">Действия при сбоях, контакты ответственных лиц</div>
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon">📈</div>
+                <div class="doc-title">История изменений</div>
+                <div class="doc-desc">Журнал конфигурационных изменений инфраструктуры</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

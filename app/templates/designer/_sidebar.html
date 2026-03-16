@@ -1,0 +1,41 @@
+<nav class="left-sidebar">
+    <div class="sidebar-section">
+        <span class="sidebar-label">Раздел</span>
+        <a href="{{ url_for('designer.dashboard') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.dashboard' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+            Дашборд
+        </a>
+        <a href="{{ url_for('designer.projects') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.projects' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="10" rx="1" opacity=".15"/><path d="M1 6h14v1H1z"/></svg>
+            Мои проекты
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">Инструменты</span>
+        <a href="{{ url_for('designer.autocad') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.autocad' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="9" rx="1" opacity=".15"/><path d="M4 7l2 2-2 2m4 0h3" stroke="currentColor" fill="none" stroke-linecap="round"/></svg>
+            Скрипты AutoCAD
+        </a>
+        <a href="{{ url_for('designer.blocks') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.blocks' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1" opacity=".6"/><rect x="9" y="2" width="5" height="5" rx="1" opacity=".3"/><rect x="2" y="9" width="5" height="5" rx="1" opacity=".3"/><rect x="9" y="9" width="5" height="5" rx="1" opacity=".15"/></svg>
+            Типовые блоки
+        </a>
+        <a href="{{ url_for('designer.equipment') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.equipment' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3" opacity=".15"/><path d="M8 1v2m0 10v2M1 8h2m10 0h2" stroke="currentColor" fill="none" stroke-linecap="round"/></svg>
+            Оборудование
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">Справочники</span>
+        <a href="{{ url_for('designer.regulations') }}"
+           class="sidebar-link {% if request.endpoint == 'designer.regulations' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
+            Нормативная база
+        </a>
+    </div>
+</nav>

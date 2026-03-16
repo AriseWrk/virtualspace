@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Нормативная база — Проектировщик{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-designer">
+    {% include "designer/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Проектировщик</div>
+        <h1 class="page-title" style="margin-bottom:24px">Нормативная база</h1>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Документ</th>
+                        <th>Номер</th>
+                        <th>Раздел</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in docs %}
+                    <tr>
+                        <td class="td-name">{{ doc.name }}</td>
+                        <td style="color:#7a6eaa;font-weight:400;white-space:nowrap">{{ doc.number }}</td>
+                        <td>
+                            <span style="font-size:9px;letter-spacing:1px;padding:3px 7px;border-radius:2px;background:rgba(122,110,170,.1);color:#7a6eaa;text-transform:uppercase">
+                                {{ doc.category }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">Документов: {{ docs|length }}</div>
+    </div>
+</div>
+{% endblock %}

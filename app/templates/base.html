@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}АБ Радонеж{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+    <script>
+        /* Применяем тему ДО рендера страницы — без мигания */
+        (function() {
+            const t = localStorage.getItem('ab_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<nav class="topbar">
+    <div class="topbar-left">
+        <span class="logo-text">АБ РАДОНЕЖ</span>
+        <span class="logo-dot"></span>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard.index') }}"
+               class="nav-item {% if request.blueprint == 'dashboard' %}active{% endif %}">
+                Главная
+            </a>
+            {% if current_user.has_warehouse_access() %}
+            <a href="{{ url_for('warehouse.index') }}"
+               class="nav-item {% if request.blueprint == 'warehouse' %}active{% endif %}">
+                Склад
+            </a>
+            {% endif %}
+            {% if current_user.role in ('engineer', 'director') %}
+            <a href="{{ url_for('engineer.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'engineer' %}active{% endif %}">
+                Инженер
+            </a>
+            {% endif %}
+            {% if current_user.role in ('designer', 'director') %}
+            <a href="{{ url_for('designer.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'designer' %}active{% endif %}">
+                Проектировщик
+            </a>
+            {% endif %}
+            {% if current_user.role in ('office', 'pts', 'director') %}
+            <a href="{{ url_for('pts.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'pts' %}active{% endif %}">
+                ПТС
+            </a>
+            {% endif %}
+            <a href="{{ url_for('academy.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'academy' %}active{% endif %}">
+                Обучение
+            </a>
+            <a href="{{ url_for('utilities.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'utilities' %}active{% endif %}">
+                Утилиты
+            </a>
+            <a href="{{ url_for('garage.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'garage' %}active{% endif %}">
+                Гараж
+            </a>
+            {% if current_user.role in ('engineer', 'designer', 'director') %}
+            <a href="{{ url_for('server_room.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'server_room' %}active{% endif %}">
+                Серверная
+            </a>
+            {% endif %}
+            {% if current_user.role == 'director' %}
+            <a href="{{ url_for('admin.users') }}"
+               class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">
+                Админ
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="topbar-right">
+        <a href="{{ url_for('auth.change_password') }}" class="btn-logout" title="Сменить пароль">&#128273;</a>
+        <div class="user-chip">
+            <div class="user-info">
+                <div class="user-name">{{ current_user.full_name }}</div>
+                <div class="user-role">{{ config.ROLES.get(current_user.role, current_user.role) }}</div>
+            </div>
+            <div class="user-avatar">{{ current_user.full_name[:2].upper() }}</div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn-logout" title="Выйти">&#x2192;</a>
+    </div>
+</nav>
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container">
+    {% for category, message in messages %}
+    <div class="flash flash--{{ category }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<main class="main-content {% if not current_user.is_authenticated %}main-content--full{% endif %}">
+    {% block content %}{% endblock %}
+</main>
+
+{% if current_user.is_authenticated %}
+<div class="theme-switcher">
+    <span class="theme-switcher__label">Тема</span>
+    <button class="theme-btn theme-btn--dark"
+            onclick="setTheme('dark')"
+            data-theme-btn="dark"
+            title="Тёмная"></button>
+    <button class="theme-btn theme-btn--light"
+            onclick="setTheme('light')"
+            data-theme-btn="light"
+            title="Светлая"></button>
+    <button class="theme-btn theme-btn--red"
+            onclick="setTheme('dark-red')"
+            data-theme-btn="dark-red"
+            title="Тёмная бордо"></button>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

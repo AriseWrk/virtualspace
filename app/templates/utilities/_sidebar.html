@@ -1,0 +1,40 @@
+<nav class="left-sidebar">
+    <div class="sidebar-section">
+        <span class="sidebar-label">Утилиты</span>
+        <a href="{{ url_for('utilities.dashboard') }}"
+           class="sidebar-link {% if request.endpoint == 'utilities.dashboard' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+            Главная
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">Калькуляторы</span>
+        <a href="{{ url_for('utilities.calc_cable') }}"
+           class="sidebar-link {% if request.endpoint == 'utilities.calc_cable' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
+            Кабель
+        </a>
+        <a href="{{ url_for('utilities.calc_ip') }}"
+           class="sidebar-link {% if request.endpoint == 'utilities.calc_ip' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".15"/><path d="M8 2v12M2 8h12" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+            IP-подсети
+        </a>
+        <a href="{{ url_for('utilities.calc_ups') }}"
+           class="sidebar-link {% if request.endpoint == 'utilities.calc_ups' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="8" rx="1" opacity=".15"/><path d="M6 8h4m-2-2v4" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Мощность UPS
+        </a>
+        <a href="{{ url_for('utilities.calc_convert') }}"
+           class="sidebar-link {% if request.endpoint == 'utilities.calc_convert' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 5h10M3 11h10" stroke="currentColor" fill="none" stroke-width="1.2"/><path d="M10 3l3 2-3 2M6 9l-3 2 3 2" stroke="currentColor" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Конвертер
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">ПО</span>
+        <a href="{{ url_for('utilities.dashboard') }}#software" class="sidebar-link">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="9" rx="1" opacity=".15"/><path d="M4 7l2 2-2 2m4 0h3" stroke="currentColor" fill="none" stroke-linecap="round"/></svg>
+            Скачать ПО
+        </a>
+    </div>
+</nav>

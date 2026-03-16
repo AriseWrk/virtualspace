@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Гараж — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-garage .sidebar-link.active{background:rgba(200,100,60,.06);color:#c8643c;border-left-color:#c8643c}
+.theme-garage .page-tag{color:#c8643c}
+.theme-garage .metric-card--accent{border-top-color:#c8643c}
+.veh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:28px}
+.veh-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:18px 20px}
+.veh-card--available{border-left:3px solid #2d6a3a}
+.veh-card--on_route{border-left:3px solid #b98c50}
+.veh-card--maintenance{border-left:3px solid #8a3030}
+.veh-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.veh-name{font-size:14px;color:#f0ece4;font-weight:400}
+.veh-plate{font-size:11px;color:#4a4845;margin-top:3px;letter-spacing:1px}
+.veh-badge{font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;text-transform:uppercase;white-space:nowrap}
+.veh-badge--available{background:rgba(45,106,58,.15);color:#4caf6b}
+.veh-badge--on_route{background:rgba(185,140,80,.15);color:#b98c50}
+.veh-badge--maintenance{background:rgba(138,48,48,.15);color:#e06060}
+.veh-driver{font-size:12px;color:#4a4845;margin-top:8px}
+.veh-driver span{color:#8a8680}
+.veh-mileage{font-size:11px;color:#3a3835;margin-top:4px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-garage">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">Гараж</span>
+            <a href="{{ url_for('garage.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'garage.dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Обзор
+            </a>
+            <a href="{{ url_for('garage.vehicles') }}"
+               class="sidebar-link {% if request.endpoint == 'garage.vehicles' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="5" width="14" height="7" rx="2" opacity=".15"/><path d="M3 5l2-3h6l2 3"/><circle cx="4" cy="12" r="1.5" opacity=".8"/><circle cx="12" cy="12" r="1.5" opacity=".8"/></svg>
+                Транспорт
+            </a>
+            <a href="{{ url_for('garage.transport_request') }}"
+               class="sidebar-link {% if request.endpoint == 'garage.transport_request' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M8 5v6m-3-3h6" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Подать заявку
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Автопарк</div>
+                <h1 class="page-title">Гараж</h1>
+            </div>
+            <a href="{{ url_for('garage.transport_request') }}" class="btn btn--primary">
+                + Заявка на транспорт
+            </a>
+        </div>
+
+        <div class="metrics-grid" style="margin-bottom:24px">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Всего транспорта</div>
+                <div class="metric-value">{{ vehicles|length }}</div>
+                <div class="metric-sub">Единиц в парке</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Свободно</div>
+                <div class="metric-value" style="color:#4caf6b">
+                    {{ vehicles|selectattr('status','eq','available')|list|length }}
+                </div>
+                <div class="metric-sub">Готовы к выезду</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">В рейсе</div>
+                <div class="metric-value" style="color:#b98c50">
+                    {{ vehicles|selectattr('status','eq','on_route')|list|length }}
+                </div>
+                <div class="metric-sub">На маршруте</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">На ТО</div>
+                <div class="metric-value" style="color:#e06060">
+                    {{ vehicles|selectattr('status','eq','maintenance')|list|length }}
+                </div>
+                <div class="metric-sub">Недоступны</div>
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:14px">Автопарк</div>
+        <div class="veh-grid">
+            {% for v in vehicles %}
+            <div class="veh-card veh-card--{{ v.status }}">
+                <div class="veh-header">
+                    <div>
+                        <div class="veh-name">{{ v.name }}</div>
+                        <div class="veh-plate">{{ v.plate }}</div>
+                    </div>
+                    <span class="veh-badge veh-badge--{{ v.status }}">
+                        {% if v.status == 'available' %}Свободен
+                        {% elif v.status == 'on_route' %}В рейсе
+                        {% else %}ТО{% endif %}
+                    </span>
+                </div>
+                <div class="veh-driver">Водитель: <span>{{ v.driver }}</span></div>
+                <div class="veh-mileage">Пробег: {{ '{:,}'.format(v.mileage).replace(',', ' ') }} км</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

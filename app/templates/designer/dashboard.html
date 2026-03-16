@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Проектировщик — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-designer">
+    {% include "designer/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Рабочее пространство</div>
+                <h1 class="page-title">Дашборд проектировщика</h1>
+            </div>
+        </div>
+        <div class="metrics-grid">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Активных проектов</div>
+                <div class="metric-value">—</div>
+                <div class="metric-sub">В работе</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Скриптов AutoCAD</div>
+                <div class="metric-value">5</div>
+                <div class="metric-sub">Доступно</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Нормативных документов</div>
+                <div class="metric-value">8</div>
+                <div class="metric-sub">В базе</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Типовых блоков</div>
+                <div class="metric-value">—</div>
+                <div class="metric-sub">В библиотеке</div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title" style="margin-bottom:14px">Быстрые действия</div>
+            <div class="quick-actions">
+                <a href="{{ url_for('designer.autocad') }}" class="quick-btn">
+                    <span class="quick-icon">⚡</span><span>Скрипты AutoCAD</span>
+                </a>
+                <a href="{{ url_for('designer.regulations') }}" class="quick-btn">
+                    <span class="quick-icon">📄</span><span>Нормативы</span>
+                </a>
+                <a href="{{ url_for('designer.blocks') }}" class="quick-btn">
+                    <span class="quick-icon">🗂</span><span>Типовые блоки</span>
+                </a>
+                <a href="{{ url_for('designer.projects') }}" class="quick-btn">
+                    <span class="quick-icon">📐</span><span>Проекты</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

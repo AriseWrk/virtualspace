@@ -1,0 +1,41 @@
+<nav class="left-sidebar">
+    <div class="sidebar-section">
+        <span class="sidebar-label">ПТС</span>
+        <a href="{{ url_for('pts.dashboard') }}"
+           class="sidebar-link {% if request.endpoint == 'pts.dashboard' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+            Дашборд
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">Объекты</span>
+        <a href="{{ url_for('pts.service_list') }}"
+           class="sidebar-link {% if request.endpoint == 'pts.service_list' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v10H2z" opacity=".15"/><path d="M2 3h12v2H2zm0 4h8v1H2zm0 3h6v1H2z"/></svg>
+            Техобслуживание
+        </a>
+        <a href="{{ url_for('pts.installation_list') }}"
+           class="sidebar-link {% if request.endpoint == 'pts.installation_list' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5v6l7 4 7-4V5z" opacity=".15"/><path d="M8 1L1 5l7 4 7-4z" opacity=".6" fill="currentColor"/><path d="M1 5v6l7 4V9z" opacity=".4" fill="currentColor"/></svg>
+            Монтажи
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <span class="sidebar-label">Действия</span>
+        <a href="{{ url_for('pts.create_object', section='service') }}"
+           class="sidebar-link">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="1" opacity=".15"/><path d="M8 5v6M5 8h6" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>
+            + ТО объект
+        </a>
+        <a href="{{ url_for('pts.create_object', section='installation') }}"
+           class="sidebar-link">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="1" opacity=".15"/><path d="M8 5v6M5 8h6" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>
+            + Монтаж
+        </a>
+        <a href="{{ url_for('pts.objects') }}"
+           class="sidebar-link {% if request.endpoint == 'pts.objects' %}active{% endif %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+            Все категории
+        </a>
+    </div>
+</nav>

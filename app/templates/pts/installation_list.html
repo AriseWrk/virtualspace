@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Монтажи — ПТС{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+.obj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.obj-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:16px 18px;transition:all .2s;display:block}
+.obj-card:hover{border-color:rgba(90,140,200,.3);transform:translateY(-2px);color:inherit}
+.obj-card--inst_survey{border-left:3px solid #5a8cc8}
+.obj-card--inst_design{border-left:3px solid #7a6eaa}
+.obj-card--inst_mounting{border-left:3px solid #b98c50}
+.obj-card--inst_pnr{border-left:3px solid #3cb478}
+.obj-card--inst_done{border-left:3px solid #2d6a3a}
+.obj-card--inst_cancelled{border-left:3px solid #3a3835}
+.obj-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.obj-name{font-size:13px;color:#f0ece4;font-weight:400;line-height:1.3}
+.obj-cat{display:inline-flex;align-items:center;gap:5px;margin-bottom:6px}
+.obj-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.obj-cat-name{font-size:10px;color:#3a3835;letter-spacing:1px}
+.obj-address{font-size:11px;color:#3a3835;margin-bottom:6px}
+.obj-systems{font-size:11px;color:#3a3835;margin-bottom:8px}
+.obj-sum{font-size:12px;color:#b98c50;margin-bottom:8px}
+.stage-wrap{margin-bottom:10px}
+.stage-labels{display:flex;justify-content:space-between;margin-bottom:4px}
+.stage-label{font-size:9px;color:#2a2825;letter-spacing:1px}
+.stage-pct{font-size:9px;color:#5a8cc8}
+.stage-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.stage-fill{height:100%;background:#5a8cc8;border-radius:2px;transition:width .4s}
+.stage-fill--done{background:#2d6a3a}
+.obj-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)}
+.obj-engineer{font-size:10px;color:#2a2825}
+.obj-handover{font-size:10px;color:#4a4845;white-space:nowrap}
+.badge--inst_survey{background:rgba(90,140,200,.1);color:#5a8cc8}
+.badge--inst_design{background:rgba(122,110,170,.1);color:#7a6eaa}
+.badge--inst_mounting{background:rgba(185,140,80,.1);color:#b98c50}
+.badge--inst_pnr{background:rgba(60,180,120,.1);color:#3cb478}
+.badge--inst_done{background:rgba(45,106,58,.1);color:#4caf6b}
+.badge--inst_cancelled{background:rgba(255,255,255,.05);color:#3a3835}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+    {% include "pts/_sidebar.html" %}
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">ПТС</div>
+                <h1 class="page-title">Монтажи</h1>
+            </div>
+            <a href="{{ url_for('pts.create_object', section='installation') }}" class="btn btn--primary">
+                + Новый монтаж
+            </a>
+        </div>
+
+        <div class="filter-bar">
+            {% for val, lbl in [('','Все'),('inst_survey','Обследование'),('inst_design','Проектирование'),('inst_mounting','Монтаж'),('inst_pnr','ПНР'),('inst_done','Сдан'),('inst_cancelled','Отменён')] %}
+            {% set is_active = status_filter == val %}
+            {% if is_active %}
+            <a href="{{ url_for('pts.installation_list', status=val) }}"
+               class="filter-tab filter-tab--active">{{ lbl }}</a>
+            {% else %}
+            <a href="{{ url_for('pts.installation_list', status=val) }}"
+               class="filter-tab">{{ lbl }}</a>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {% set stage_pct = {
+            'inst_survey': 10,
+            'inst_design': 30,
+            'inst_mounting': 60,
+            'inst_pnr': 85,
+            'inst_done': 100,
+            'inst_cancelled': 0
+        } %}
+
+        {% if objects %}
+        <div class="obj-grid">
+            {% for obj in objects %}
+            <a href="{{ url_for('pts.object_detail', obj_id=obj.id) }}"
+               class="obj-card obj-card--{{ obj.status }}">
+
+                <div class="obj-top">
+                    <div class="obj-name">{{ obj.name }}</div>
+                    <span class="badge badge--{{ obj.status }}" style="white-space:nowrap;font-size:9px">
+                        {{ obj.status_label }}
+                    </span>
+                </div>
+
+                <div class="obj-cat">
+                    <div class="obj-cat-dot" style="background:{{ obj.category.color }}"></div>
+                    <span class="obj-cat-name">{{ obj.category.name }}</span>
+                </div>
+
+                {% if obj.address %}
+                <div class="obj-address">📍 {{ obj.address }}</div>
+                {% endif %}
+
+                {% if obj.systems %}
+                <div class="obj-systems">🔧 {{ obj.systems }}</div>
+                {% endif %}
+
+                {% if obj.estimate_sum %}
+                <div class="obj-sum">
+                    💰 {{ '{:,.0f}'.format(obj.estimate_sum).replace(',', ' ') }} ₽
+                    {% if obj.contract_number %}
+                    <span style="color:#2a2825;margin-left:6px">{{ obj.contract_number }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="stage-wrap">
+                    <div class="stage-labels">
+                        <span class="stage-label">Прогресс</span>
+                        <span class="stage-pct">{{ stage_pct.get(obj.status, 0) }}%</span>
+                    </div>
+                    <div class="stage-bar">
+                        <div class="stage-fill {% if obj.status == 'inst_done' %}stage-fill--done{% endif %}"
+                             style="width:{{ stage_pct.get(obj.status, 0) }}%"></div>
+                    </div>
+                </div>
+
+                <div class="obj-footer">
+                    <span class="obj-engineer">
+                        {% if obj.engineer %}👷 {{ obj.engineer.full_name }}{% endif %}
+                    </span>
+                    <span class="obj-handover">
+                        {% if obj.handover_date %}
+                        📅 {{ obj.handover_date.strftime('%d.%m.%Y') }}
+                        {% endif %}
+                    </span>
+                </div>
+
+            </a>
+            {% endfor %}
+        </div>
+        <div class="table-footer">Монтажей: {{ objects|length }}</div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🏗</div>
+            <div class="empty-text">
+                {% if status_filter %}Монтажей с такой стадией нет{% else %}Монтажей пока нет{% endif %}
+            </div>
+            <a href="{{ url_for('pts.create_object', section='installation') }}" class="btn btn--primary">
+                Добавить монтаж
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

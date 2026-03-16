@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Тесты — Учебная среда{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-academy .sidebar-link.active { background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8; }
+.theme-academy .page-tag { color:#5a8cc8; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-with-sidebar theme-academy">
+    {% include "academy/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Учебная среда</div>
+        <h1 class="page-title">Тесты</h1>
+        <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <div class="empty-text">Тесты в разработке — скоро появятся вопросы и результаты</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

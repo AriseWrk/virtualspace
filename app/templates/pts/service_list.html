@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Техобслуживание — ПТС{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+.obj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.obj-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:16px 18px;transition:all .2s;display:block}
+.obj-card:hover{border-color:rgba(90,140,200,.3);transform:translateY(-2px);color:inherit}
+.obj-card--active{border-left:3px solid #4caf6b}
+.obj-card--warranty{border-left:3px solid #5a8cc8}
+.obj-card--one_time{border-left:3px solid #b98c50}
+.obj-card--inactive{border-left:3px solid #3a3835}
+.obj-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.obj-name{font-size:13px;color:#f0ece4;font-weight:400;line-height:1.3}
+.obj-cat{display:inline-flex;align-items:center;gap:5px;margin-bottom:6px}
+.obj-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.obj-cat-name{font-size:10px;color:#3a3835;letter-spacing:1px}
+.obj-address{font-size:11px;color:#3a3835;margin-bottom:8px;line-height:1.5}
+.obj-systems{font-size:11px;color:#3a3835;margin-bottom:10px}
+.obj-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)}
+.obj-engineer{font-size:10px;color:#2a2825}
+.obj-to-date{font-size:10px;white-space:nowrap}
+.to-overdue{color:#e06060}
+.to-soon{color:#b98c50}
+.to-ok{color:#4caf6b}
+.to-none{color:#2a2825}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+    {% include "pts/_sidebar.html" %}
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">ПТС</div>
+                <h1 class="page-title">Техническое обслуживание</h1>
+            </div>
+            <a href="{{ url_for('pts.create_object', section='service') }}" class="btn btn--primary">
+                + Добавить объект
+            </a>
+        </div>
+
+        <div class="filter-bar">
+            {% for val, lbl in [('','Все'),('active','На обслуживании'),('warranty','На гарантии'),('one_time','Разовый'),('inactive','Снят')] %}
+            {% set is_active = status_filter == val %}
+            {% if is_active %}
+            <a href="{{ url_for('pts.service_list', status=val, cat=cat_filter) }}"
+               class="filter-tab filter-tab--active">{{ lbl }}</a>
+            {% else %}
+            <a href="{{ url_for('pts.service_list', status=val, cat=cat_filter) }}"
+               class="filter-tab">{{ lbl }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if categories %}
+            <select class="filter-select" onchange="location.href=this.value">
+                <option value="{{ url_for('pts.service_list', status=status_filter) }}">
+                    Все категории
+                </option>
+                {% for cat in categories %}
+                {% set is_sel = cat_filter == cat.id %}
+                {% if is_sel %}
+                <option value="{{ url_for('pts.service_list', status=status_filter, cat=cat.id) }}" selected>
+                    {{ cat.name }}
+                </option>
+                {% else %}
+                <option value="{{ url_for('pts.service_list', status=status_filter, cat=cat.id) }}">
+                    {{ cat.name }}
+                </option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+
+        {% if objects %}
+        <div class="obj-grid">
+            {% for obj in objects %}
+            <a href="{{ url_for('pts.object_detail', obj_id=obj.id) }}"
+               class="obj-card obj-card--{{ obj.status }}">
+
+                <div class="obj-top">
+                    <div class="obj-name">{{ obj.name }}</div>
+                    <span class="badge badge--{{ obj.status }}" style="white-space:nowrap;font-size:9px">
+                        {{ obj.status_label }}
+                    </span>
+                </div>
+
+                <div class="obj-cat">
+                    <div class="obj-cat-dot" style="background:{{ obj.category.color }}"></div>
+                    <span class="obj-cat-name">{{ obj.category.name }}</span>
+                </div>
+
+                {% if obj.address %}
+                <div class="obj-address">📍 {{ obj.address }}</div>
+                {% endif %}
+
+                {% if obj.systems %}
+                <div class="obj-systems">🔧 {{ obj.systems }}</div>
+                {% endif %}
+
+                <div class="obj-footer">
+                    <span class="obj-engineer">
+                        {% if obj.engineer %}👷 {{ obj.engineer.full_name }}{% endif %}
+                    </span>
+                    <span class="obj-to-date">
+                        {% if obj.next_to_date %}
+                        {% set days = (obj.next_to_date.date() - now.date()).days %}
+                        {% if days < 0 %}
+                        <span class="to-overdue">⚠ просрочено</span>
+                        {% elif days <= 30 %}
+                        <span class="to-soon">ТО {{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
+                        {% else %}
+                        <span class="to-ok">ТО {{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="to-none">ТО не назначено</span>
+                        {% endif %}
+                    </span>
+                </div>
+
+            </a>
+            {% endfor %}
+        </div>
+        <div class="table-footer">Объектов: {{ objects|length }}</div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🔧</div>
+            <div class="empty-text">
+                {% if status_filter %}Нет объектов с таким статусом{% else %}Объектов пока нет{% endif %}
+            </div>
+            <a href="{{ url_for('pts.create_object', section='service') }}" class="btn btn--primary">
+                Добавить первый объект
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

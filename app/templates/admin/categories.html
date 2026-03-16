@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Категории склада — Админ{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Администрирование</div>
+            <h1 class="page-title">Категории склада</h1>
+        </div>
+        <a href="{{ url_for('admin.users') }}" class="btn btn--ghost">← Пользователи</a>
+    </div>
+
+    <div class="form-card" style="margin-bottom:24px">
+        <div class="form-section-title">Добавить категорию</div>
+        <form method="POST" action="{{ url_for('admin.create_category') }}">
+            <div class="form-row">
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Название *</label>
+                    <input type="text" name="name" class="form-input" required placeholder="Кабельная продукция">
+                </div>
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Описание</label>
+                    <input type="text" name="description" class="form-input" placeholder="Необязательно">
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top:0;border-top:none;padding-top:0">
+                <button type="submit" class="btn btn--primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+
+    {% if categories %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Описание</th>
+                    <th>Позиций</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td class="td-name">{{ cat.name }}</td>
+                    <td class="td-muted">{{ cat.description or '—' }}</td>
+                    <td class="td-muted">{{ cat.items.count() }}</td>
+                    <td class="td-actions">
+                        <button class="action-link"
+                                onclick="openEdit({{ cat.id }}, '{{ cat.name }}', '{{ cat.description or '' }}')">
+                            Ред.
+                        </button>
+                        <form method="POST" action="{{ url_for('admin.delete_category', cat_id=cat.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Удалить категорию «{{ cat.name }}»?')">
+                            <button type="submit" class="action-link action-link--danger">Удал.</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Категорий: {{ categories|length }}</div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🗂</div>
+        <div class="empty-text">Категорий пока нет</div>
+    </div>
+    {% endif %}
+</div>
+
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
+    <div style="background:#0f0f11;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:28px 32px;width:420px">
+        <div class="page-tag" style="margin-bottom:12px">Редактировать категорию</div>
+        <form method="POST" id="edit-form">
+            <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">Название</label>
+                <input type="text" name="name" id="edit-name" class="form-input" required>
+            </div>
+            <div class="form-group" style="margin-bottom:20px">
+                <label class="form-label">Описание</label>
+                <input type="text" name="description" id="edit-desc" class="form-input">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn btn--ghost" onclick="closeEdit()">Отмена</button>
+                <button type="submit" class="btn btn--primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEdit(id, name, desc) {
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-desc').value = desc;
+    document.getElementById('edit-form').action = '/admin/categories/' + id + '/edit';
+    const modal = document.getElementById('edit-modal');
+    modal.style.display = 'flex';
+}
+function closeEdit() {
+    document.getElementById('edit-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

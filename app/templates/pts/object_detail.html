@@ -1,0 +1,572 @@
+{% extends "base.html" %}
+{% block title %}{{ obj.name }} — ПТС{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+.theme-pts .metric-card--accent{border-top-color:#5a8cc8}
+
+.inner-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;flex-wrap:wrap}
+.inner-tab{padding:10px 18px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#4a4845;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
+.inner-tab:hover{color:#8a8680}
+.inner-tab.active{color:#5a8cc8;border-bottom-color:#5a8cc8}
+.tab-section{display:none}
+.tab-section.active{display:block}
+
+.obj-header-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:20px 24px;margin-bottom:24px}
+.obj-meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.05)}
+.obj-meta-item{font-size:11px}
+.obj-meta-label{color:#2a2825;letter-spacing:1px;text-transform:uppercase;font-size:9px;margin-bottom:3px}
+.obj-meta-value{color:#8a8680}
+
+.rec-row{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.rec-row:last-child{border:none}
+.rec-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap;gap:8px}
+.rec-type-badge{font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:2px;text-transform:uppercase}
+.rb-pnr{background:rgba(185,140,80,.12);color:#b98c50}
+.rb-to{background:rgba(45,106,58,.12);color:#4caf6b}
+.rb-repair{background:rgba(138,48,48,.12);color:#e06060}
+.rb-request{background:rgba(90,140,200,.12);color:#5a8cc8}
+.rb-upgrade{background:rgba(122,110,170,.12);color:#7a6eaa}
+.rb-other{background:rgba(255,255,255,.05);color:#4a4845}
+.rec-date{font-size:11px;color:#3a3835}
+.rec-desc{font-size:13px;color:#c0bab2;line-height:1.6;margin-bottom:4px}
+.rec-result{font-size:12px;color:#4a4845;font-style:italic}
+.rec-engineer{font-size:10px;color:#2a2825;margin-top:4px}
+
+.pass-item{background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.pass-info{flex:1}
+.pass-title{font-size:13px;color:#f0ece4;font-weight:400;margin-bottom:4px}
+.pass-url{font-size:11px;color:#5a8cc8;margin-bottom:6px}
+.pass-credentials{display:flex;gap:16px;flex-wrap:wrap}
+.pass-field{font-size:11px;color:#3a3835}
+.pass-field span{color:#8a8680;margin-left:4px}
+.pass-hidden{filter:blur(4px);cursor:pointer;transition:filter .2s;font-family:monospace}
+.pass-hidden:hover{filter:none}
+
+.file-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:12px;flex-wrap:wrap}
+.file-item:last-child{border:none}
+.file-icon{font-size:18px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;color:#c0bab2;font-weight:400}
+.file-meta{font-size:10px;color:#2a2825;margin-top:2px}
+.file-type-badge{font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:2px;background:rgba(90,140,200,.1);color:#5a8cc8;text-transform:uppercase;white-space:nowrap}
+
+.eq-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:8px}
+.eq-item:last-child{border:none}
+.eq-name{font-size:13px;color:#c0bab2;font-weight:400}
+.eq-model{font-size:11px;color:#3a3835;margin-top:2px}
+.eq-sn{font-size:10px;color:#2a2825;font-family:monospace}
+.warranty-ok{color:#4caf6b;font-size:10px}
+.warranty-exp{color:#e06060;font-size:10px}
+
+.add-form{background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:16px 18px;margin-top:16px}
+.add-form-title{font-size:9px;letter-spacing:3px;color:#3a3835;text-transform:uppercase;margin-bottom:12px}
+.add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">ПТС</span>
+            <a href="{{ url_for('pts.dashboard') }}" class="sidebar-link">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('pts.objects', cat=obj.category_id) }}" class="sidebar-link active">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5v6l7 4 7-4V5z" opacity=".15"/><path d="M8 1L1 5l7 4 7-4z" opacity=".6" fill="currentColor"/></svg>
+                {{ obj.category.name }}
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+
+        {# ===== ШАПКА ОБЪЕКТА ===== #}
+        <div class="obj-header-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+                <div>
+                    <div class="page-tag">{{ obj.category.name }}</div>
+                    <h1 style="font-size:22px;color:#f0ece4;font-weight:300;margin-bottom:4px">{{ obj.name }}</h1>
+                    {% if obj.address %}
+                    <div style="font-size:12px;color:#4a4845">📍 {{ obj.address }}</div>
+                    {% endif %}
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+                    <span class="badge badge--{{ obj.status }}" style="font-size:10px;padding:5px 12px">
+                        {{ obj.status_label }}
+                    </span>
+                    <div style="display:flex;gap:8px">
+                        <a href="{{ url_for('pts.export_object', obj_id=obj.id) }}"
+                           class="btn btn--ghost btn--sm">↓ Excel</a>
+                        <a href="{{ url_for('pts.edit_object', obj_id=obj.id) }}"
+                           class="btn btn--ghost btn--sm">Редактировать</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="obj-meta-grid">
+                {% if obj.systems %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Системы</div>
+                    <div class="obj-meta-value">{{ obj.systems }}</div>
+                </div>
+                {% endif %}
+                {% if obj.engineer %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Инженер</div>
+                    <div class="obj-meta-value">{{ obj.engineer.full_name }}</div>
+                </div>
+                {% endif %}
+                {% if obj.commissioned_at %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Введён в эксплуатацию</div>
+                    <div class="obj-meta-value">{{ obj.commissioned_at.strftime('%d.%m.%Y') }}</div>
+                </div>
+                {% endif %}
+                {% if obj.next_to_date %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Следующее ТО</div>
+                    <div class="obj-meta-value" style="color:#b98c50">{{ obj.next_to_date.strftime('%d.%m.%Y') }}</div>
+                </div>
+                {% endif %}
+                {% if obj.client_name %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Заказчик</div>
+                    <div class="obj-meta-value">{{ obj.client_name }}</div>
+                </div>
+                {% endif %}
+                {% if obj.client_contact %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Контакт</div>
+                    <div class="obj-meta-value">{{ obj.client_contact }}</div>
+                </div>
+                {% endif %}
+                {% if obj.client_phone %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Телефон</div>
+                    <div class="obj-meta-value">
+                        <a href="tel:{{ obj.client_phone }}" style="color:#5a8cc8">{{ obj.client_phone }}</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if obj.client_email %}
+                <div class="obj-meta-item">
+                    <div class="obj-meta-label">Email</div>
+                    <div class="obj-meta-value">
+                        <a href="mailto:{{ obj.client_email }}" style="color:#5a8cc8">{{ obj.client_email }}</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if obj.notes %}
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:#4a4845;line-height:1.7">
+                {{ obj.notes }}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ===== ТАБЫ ===== #}
+        <div class="inner-tabs">
+            <div class="inner-tab active" onclick="showTab('history')">📋 История</div>
+            <div class="inner-tab" onclick="showTab('equipment')">🔧 Оборудование</div>
+            <div class="inner-tab" onclick="showTab('passwords')">🔑 Пароли</div>
+            <div class="inner-tab" onclick="showTab('files')">📁 Файлы</div>
+        </div>
+
+        {# ========== ИСТОРИЯ ОБСЛУЖИВАНИЯ ========== #}
+        <div id="tab-history" class="tab-section active">
+
+            {% if obj.service_records %}
+                {% for rec in obj.service_records %}
+                <div class="rec-row">
+                    <div class="rec-header">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                            <span class="rec-type-badge rb-{{ rec.record_type }}">{{ rec.type_label }}</span>
+                            <span class="badge badge--{{ rec.status }}" style="font-size:9px">{{ rec.status_label }}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <span class="rec-date">{{ rec.date.strftime('%d.%m.%Y') }}</span>
+                            <form method="POST"
+                                  action="{{ url_for('pts.delete_record', obj_id=obj.id, rec_id=rec.id) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('Удалить запись?')">
+                                <button type="submit" class="action-link action-link--danger">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="rec-desc">{{ rec.description }}</div>
+                    {% if rec.result %}
+                    <div class="rec-result">Результат: {{ rec.result }}</div>
+                    {% endif %}
+                    <div class="rec-engineer">
+                        {% if rec.engineer %}👷 {{ rec.engineer.full_name }}{% endif %}
+                        {% if rec.next_to_date %}
+                        · Следующее ТО: <span style="color:#b98c50">{{ rec.next_to_date.strftime('%d.%m.%Y') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">История пуста — добавьте первую запись</div>
+            </div>
+            {% endif %}
+
+            <div class="add-form">
+                <div class="add-form-title">Добавить запись</div>
+                <form method="POST" action="{{ url_for('pts.add_record', obj_id=obj.id) }}">
+                    <div class="add-row" style="margin-bottom:10px">
+                        <div class="form-group">
+                            <label class="form-label">Тип *</label>
+                            <select name="record_type" class="form-select">
+                                <option value="pnr">ПНР</option>
+                                <option value="to" selected>ТО</option>
+                                <option value="repair">Ремонт</option>
+                                <option value="request">Заявка</option>
+                                <option value="upgrade">Модернизация</option>
+                                <option value="other">Прочее</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Статус</label>
+                            <select name="status" class="form-select">
+                                <option value="done" selected>Выполнено</option>
+                                <option value="in_progress">В работе</option>
+                                <option value="open">Открыта</option>
+                                <option value="cancelled">Отменено</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дата *</label>
+                            <input type="date" name="date" class="form-input"
+                                   value="{{ now.strftime('%Y-%m-%d') if now else '' }}"
+                                   id="today-date">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Инженер</label>
+                            <select name="engineer_id" class="form-select">
+                                <option value="">— —</option>
+                                {% for eng in engineers %}
+                                <option value="{{ eng.id }}" {% if obj.engineer_id == eng.id %}selected{% endif %}>
+                                    {{ eng.full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="add-row" style="margin-bottom:10px">
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Описание работ *</label>
+                            <textarea name="description" class="form-textarea" rows="2" required
+                                      placeholder="Проведено плановое ТО: проверка камер, очистка объективов..."></textarea>
+                        </div>
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Результат / Замечания</label>
+                            <textarea name="result" class="form-textarea" rows="2"
+                                      placeholder="Все системы работают штатно. Заменён блок питания камеры №3..."></textarea>
+                        </div>
+                    </div>
+                    <div class="add-row">
+                        <div class="form-group">
+                            <label class="form-label">Следующее ТО</label>
+                            <input type="date" name="next_to_date" class="form-input">
+                        </div>
+                        <div style="display:flex;align-items:flex-end">
+                            <button type="submit" class="btn btn--primary">Добавить запись</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# ========== ОБОРУДОВАНИЕ ========== #}
+        <div id="tab-equipment" class="tab-section">
+
+            {% if obj.equipment %}
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Наименование</th>
+                            <th>Модель</th>
+                            <th>S/N</th>
+                            <th>Кол-во</th>
+                            <th>Расположение</th>
+                            <th>Установлен</th>
+                            <th>Гарантия</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eq in obj.equipment %}
+                        <tr>
+                            <td class="td-name">{{ eq.name }}</td>
+                            <td class="td-muted">{{ eq.model or '—' }}</td>
+                            <td style="font-family:monospace;font-size:11px;color:#3a3835">{{ eq.serial_number or '—' }}</td>
+                            <td class="td-muted">{{ eq.quantity }}</td>
+                            <td class="td-muted">{{ eq.location or '—' }}</td>
+                            <td class="td-date">{{ eq.installed_at.strftime('%d.%m.%Y') if eq.installed_at else '—' }}</td>
+                            <td>
+                                {% if eq.warranty_until %}
+                                {% if eq.warranty_status == 'active' %}
+                                <span class="warranty-ok">✓ до {{ eq.warranty_until.strftime('%d.%m.%Y') }}</span>
+                                {% else %}
+                                <span class="warranty-exp">истекла {{ eq.warranty_until.strftime('%d.%m.%Y') }}</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="td-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="td-actions">
+                                <form method="POST"
+                                      action="{{ url_for('pts.delete_equipment', obj_id=obj.id, eq_id=eq.id) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Удалить?')">
+                                    <button type="submit" class="action-link action-link--danger">Удал.</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">Позиций: {{ obj.equipment|length }}</div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔧</div>
+                <div class="empty-text">Оборудование не добавлено</div>
+            </div>
+            {% endif %}
+
+            <div class="add-form">
+                <div class="add-form-title">Добавить оборудование</div>
+                <form method="POST" action="{{ url_for('pts.add_equipment', obj_id=obj.id) }}">
+                    <div class="add-row" style="margin-bottom:10px">
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Наименование *</label>
+                            <input type="text" name="name" class="form-input" required placeholder="IP-камера">
+                        </div>
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Модель</label>
+                            <input type="text" name="model" class="form-input" placeholder="Hikvision DS-2CD2143G2-I">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Кол-во</label>
+                            <input type="number" name="quantity" class="form-input" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="add-row">
+                        <div class="form-group">
+                            <label class="form-label">Серийный номер</label>
+                            <input type="text" name="serial_number" class="form-input" placeholder="SN12345678">
+                        </div>
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Расположение</label>
+                            <input type="text" name="location" class="form-input" placeholder="Вход, ул. Тверская">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дата установки</label>
+                            <input type="date" name="installed_at" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Гарантия до</label>
+                            <input type="date" name="warranty_until" class="form-input">
+                        </div>
+                        <div style="display:flex;align-items:flex-end">
+                            <button type="submit" class="btn btn--primary">Добавить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# ========== ПАРОЛИ ========== #}
+        <div id="tab-passwords" class="tab-section">
+
+            {% if obj.passwords %}
+                {% for pwd in obj.passwords %}
+                <div class="pass-item">
+                    <div class="pass-info">
+                        <div class="pass-title">{{ pwd.title }}</div>
+                        {% if pwd.ip_or_url %}
+                        <div class="pass-url">{{ pwd.ip_or_url }}</div>
+                        {% endif %}
+                        <div class="pass-credentials">
+                            {% if pwd.login %}
+                            <div class="pass-field">Логин: <span>{{ pwd.login }}</span></div>
+                            {% endif %}
+                            <div class="pass-field">Пароль: <span class="pass-hidden" title="Нажмите чтобы показать">{{ pwd.password }}</span></div>
+                        </div>
+                        {% if pwd.notes %}
+                        <div style="font-size:11px;color:#2a2825;margin-top:4px">{{ pwd.notes }}</div>
+                        {% endif %}
+                    </div>
+                    <form method="POST"
+                          action="{{ url_for('pts.delete_password', obj_id=obj.id, pwd_id=pwd.id) }}"
+                          onsubmit="return confirm('Удалить пароль?')">
+                        <button type="submit" class="action-link action-link--danger">✕</button>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔑</div>
+                <div class="empty-text">Паролей нет</div>
+            </div>
+            {% endif %}
+
+            <div class="add-form">
+                <div class="add-form-title">Добавить пароль</div>
+                <form method="POST" action="{{ url_for('pts.add_password', obj_id=obj.id) }}">
+                    <div class="add-row" style="margin-bottom:10px">
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Название *</label>
+                            <input type="text" name="title" class="form-input" required placeholder="NVR Hikvision">
+                        </div>
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">IP / URL</label>
+                            <input type="text" name="ip_or_url" class="form-input" placeholder="192.168.1.100">
+                        </div>
+                    </div>
+                    <div class="add-row">
+                        <div class="form-group">
+                            <label class="form-label">Логин</label>
+                            <input type="text" name="login" class="form-input" placeholder="admin">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Пароль *</label>
+                            <input type="text" name="password" class="form-input" required placeholder="••••••••">
+                        </div>
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Примечание</label>
+                            <input type="text" name="notes" class="form-input" placeholder="Основная учётная запись">
+                        </div>
+                        <div style="display:flex;align-items:flex-end">
+                            <button type="submit" class="btn btn--primary">Добавить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# ========== ФАЙЛЫ ========== #}
+        <div id="tab-files" class="tab-section">
+
+            {% if obj.files %}
+                {% for f in obj.files %}
+                <div class="file-item">
+                    <div class="file-icon">
+                        {% if f.original_name.endswith('.pdf') %}📄
+                        {% elif f.original_name.endswith(('.xlsx','.xls')) %}📊
+                        {% elif f.original_name.endswith(('.docx','.doc')) %}📝
+                        {% elif f.original_name.endswith(('.zip','.rar')) %}📦
+                        {% elif f.original_name.endswith(('.jpg','.png','.jpeg')) %}🖼
+                        {% else %}📁{% endif %}
+                    </div>
+                    <div class="file-info">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                            <div class="file-name">{{ f.original_name }}</div>
+                            <span class="file-type-badge">{{ f.type_label }}</span>
+                            {% if f.version %}
+                            <span style="font-size:10px;color:#2a2825">v{{ f.version }}</span>
+                            {% endif %}
+                        </div>
+                        {% if f.description %}
+                        <div style="font-size:11px;color:#3a3835;margin-top:2px">{{ f.description }}</div>
+                        {% endif %}
+                        <div class="file-meta">
+                            {{ f.author.full_name if f.author else '—' }} · {{ f.uploaded_at.strftime('%d.%m.%Y %H:%M') }}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                        <a href="{{ f.url }}" class="btn btn--ghost btn--sm" download="{{ f.original_name }}">↓</a>
+                        <form method="POST"
+                              action="{{ url_for('pts.delete_file', obj_id=obj.id, file_id=f.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Удалить файл?')">
+                            <button type="submit" class="action-link action-link--danger">✕</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="table-footer">Файлов: {{ obj.files|length }}</div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📁</div>
+                <div class="empty-text">Файлов нет</div>
+            </div>
+            {% endif %}
+
+            <div class="add-form" style="margin-top:16px">
+                <div class="add-form-title">Загрузить файл</div>
+                <form method="POST"
+                      action="{{ url_for('pts.upload_file', obj_id=obj.id) }}"
+                      enctype="multipart/form-data">
+                    <div class="add-row" style="margin-bottom:10px">
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Файл *</label>
+                            <input type="file" name="file" class="form-input" required
+                                   style="padding:8px 12px">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Тип</label>
+                            <select name="file_type" class="form-select">
+                                <option value="config">Конфигурация</option>
+                                <option value="schema">Схема</option>
+                                <option value="estimate">Смета</option>
+                                <option value="contract">Договор</option>
+                                <option value="act">Акт</option>
+                                <option value="other">Прочее</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="add-row">
+                        <div class="form-group form-group--wide">
+                            <label class="form-label">Описание</label>
+                            <input type="text" name="description" class="form-input"
+                                   placeholder="Конфигурация NVR после ТО 03.2026">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Версия</label>
+                            <input type="text" name="version" class="form-input" placeholder="1.2">
+                        </div>
+                        <div style="display:flex;align-items:flex-end">
+                            <button type="submit" class="btn btn--primary">Загрузить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(name) {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+const hash = window.location.hash.replace('#', '');
+const tabs = ['history', 'equipment', 'passwords', 'files'];
+if (hash && tabs.includes(hash)) {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + hash).classList.add('active');
+    document.querySelectorAll('.inner-tab')[tabs.indexOf(hash)].classList.add('active');
+}
+
+document.getElementById('today-date').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

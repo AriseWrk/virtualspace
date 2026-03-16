@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Транспорт — Гараж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-garage .sidebar-link.active{background:rgba(200,100,60,.06);color:#c8643c;border-left-color:#c8643c}
+.theme-garage .page-tag{color:#c8643c}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-with-sidebar theme-garage">
+    {% include "garage/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-tag">Гараж</div>
+        <h1 class="page-title">Транспорт</h1>
+        <div class="empty-state" style="margin-top:24px">
+            <div class="empty-icon">🚗</div>
+            <div class="empty-text">Расширенный учёт транспорта в разработке</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Вход — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-screen">
+    <div class="auth-bg-grid"></div>
+    <div class="auth-bg-glow"></div>
+    <div class="auth-bg-glow auth-bg-glow--2"></div>
+
+    <div class="auth-left">
+        <div class="auth-brand-tag">ООО ЧОО</div>
+        <div class="auth-brand-name">АБ<br>РАДОНЕЖ</div>
+        <div class="auth-brand-sub">Виртуальное рабочее пространство</div>
+        <div class="auth-divider"></div>
+        <p class="auth-tagline">
+            Единая цифровая среда для координации<br>
+            работы всех подразделений организации.
+        </p>
+    </div>
+
+    <div class="auth-right">
+        <div class="auth-form-label">Авторизация</div>
+        <h1 class="auth-form-heading">Добро пожаловать<br>в АБ Радонеж</h1>
+        <p class="auth-form-desc">Введите учётные данные для доступа к системе</p>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+            <div class="auth-field">
+                <label for="username">Логин</label>
+                <input type="text" id="username" name="username"
+                       placeholder="Введите логин..." autocomplete="username" required autofocus>
+            </div>
+            <div class="auth-field">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password"
+                       placeholder="••••••••" autocomplete="current-password" required>
+            </div>
+            <div class="auth-remember">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="remember">
+                    <span>Запомнить меня</span>
+                </label>
+            </div>
+            <button type="submit" class="auth-btn">Войти в систему</button>
+        </form>
+
+        <div class="auth-footer">
+            <span><span class="status-dot"></span> Система активна</span>
+            <span>v1.0</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

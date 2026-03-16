@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Учебная среда — АБ Радонеж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-academy { --sidebar-accent: #5a8cc8; }
+.theme-academy .sidebar-link.active { background: rgba(90,140,200,.06); color: #5a8cc8; border-left-color: #5a8cc8; }
+.theme-academy .page-tag { color: #5a8cc8; }
+.theme-academy .metric-card--accent { border-top-color: #5a8cc8; }
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 14px; }
+.course-card {
+    background: #0f0f11; border: 1px solid rgba(255,255,255,.07);
+    border-radius: 6px; padding: 20px 22px;
+    transition: border-color .2s, transform .2s;
+}
+.course-card:hover { border-color: rgba(90,140,200,.35); transform: translateY(-2px); }
+.course-tag {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 2px; margin-bottom: 12px;
+    display: inline-block;
+}
+.course-tag--eng { background: rgba(185,140,80,.12); color: #b98c50; }
+.course-tag--des { background: rgba(122,110,170,.12); color: #7a6eaa; }
+.course-tag--all { background: rgba(90,140,200,.12); color: #5a8cc8; }
+.course-title { font-size: 14px; color: #f0ece4; font-weight: 400; margin-bottom: 6px; }
+.course-desc { font-size: 12px; color: #4a4845; line-height: 1.6; margin-bottom: 14px; }
+.course-footer { display: flex; justify-content: space-between; align-items: center; }
+.course-lessons { font-size: 10px; color: #3a3835; letter-spacing: 1px; }
+.course-progress { height: 2px; background: rgba(255,255,255,.06); border-radius: 1px; margin-top: 10px; }
+.course-progress-fill { height: 100%; background: #5a8cc8; border-radius: 1px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-academy">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">Учебная среда</span>
+            <a href="{{ url_for('academy.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'academy.dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Главная
+            </a>
+            <a href="{{ url_for('academy.courses') }}"
+               class="sidebar-link {% if request.endpoint == 'academy.courses' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M2 2h12v1H2zm0 3h8v1H2zm0 3h10v1H2zm0 3h6v1H2z"/></svg>
+                Курсы
+            </a>
+            <a href="{{ url_for('academy.tests') }}"
+               class="sidebar-link {% if request.endpoint == 'academy.tests' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".15"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                Тесты
+            </a>
+            <a href="{{ url_for('academy.knowledge') }}"
+               class="sidebar-link {% if request.endpoint == 'academy.knowledge' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
+                База знаний
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Образование</div>
+                <h1 class="page-title">Учебная среда</h1>
+            </div>
+        </div>
+
+        <div class="metrics-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:28px">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Курсов доступно</div>
+                <div class="metric-value">6</div>
+                <div class="metric-sub">По вашей роли</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Тестов пройдено</div>
+                <div class="metric-value">—</div>
+                <div class="metric-sub">Ваш прогресс</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Статей в базе</div>
+                <div class="metric-value">24</div>
+                <div class="metric-sub">Знаний</div>
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:16px">Доступные курсы</div>
+        <div class="course-grid">
+
+            <div class="course-card">
+                <span class="course-tag course-tag--all">Всем</span>
+                <div class="course-title">Охрана труда и ТБ</div>
+                <div class="course-desc">Инструктаж по технике безопасности, работа на высоте, электробезопасность</div>
+                <div class="course-footer">
+                    <span class="course-lessons">8 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+
+            {% if current_user.role in ('engineer', 'director') %}
+            <div class="course-card">
+                <span class="course-tag course-tag--eng">Инженер</span>
+                <div class="course-title">Охранные системы и СКУД</div>
+                <div class="course-desc">Принципы работы, монтаж, настройка и обслуживание систем безопасности</div>
+                <div class="course-footer">
+                    <span class="course-lessons">12 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+
+            <div class="course-card">
+                <span class="course-tag course-tag--eng">Инженер</span>
+                <div class="course-title">Структурированные кабельные системы</div>
+                <div class="course-desc">СКС от А до Я: стандарты, категории кабеля, монтаж и тестирование</div>
+                <div class="course-footer">
+                    <span class="course-lessons">10 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+
+            <div class="course-card">
+                <span class="course-tag course-tag--eng">Инженер</span>
+                <div class="course-title">Видеонаблюдение и IP-камеры</div>
+                <div class="course-desc">Аналоговые и IP системы, настройка NVR/DVR, работа с Hikvision/Dahua</div>
+                <div class="course-footer">
+                    <span class="course-lessons">9 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+            {% endif %}
+
+            {% if current_user.role in ('designer', 'director') %}
+            <div class="course-card">
+                <span class="course-tag course-tag--des">Проектировщик</span>
+                <div class="course-title">Проектирование слаботочных систем</div>
+                <div class="course-desc">Состав проектной документации, стадии проектирования, нормативная база</div>
+                <div class="course-footer">
+                    <span class="course-lessons">14 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+
+            <div class="course-card">
+                <span class="course-tag course-tag--des">Проектировщик</span>
+                <div class="course-title">AutoCAD для проектировщика</div>
+                <div class="course-desc">Работа с блоками, слоями, штампами. Автоматизация через LISP-скрипты</div>
+                <div class="course-footer">
+                    <span class="course-lessons">11 уроков</span>
+                    <a href="{{ url_for('academy.courses') }}" class="action-link">Начать →</a>
+                </div>
+                <div class="course-progress"><div class="course-progress-fill" style="width:0%"></div></div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

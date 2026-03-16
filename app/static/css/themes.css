@@ -1,0 +1,50 @@
+/* ===== ТЕМА: ТЁМНАЯ (по умолчанию) ===== */
+[data-theme="dark"] {
+    --bg-base:      #0a0a0c;
+    --bg-surface:   #0f0f11;
+    --bg-hover:     #141416;
+    --border:       rgba(255, 255, 255, 0.07);
+    --border-md:    rgba(255, 255, 255, 0.12);
+    --gold:         #b98c50;
+    --gold-light:   #cda060;
+    --text-primary:   #f0ece4;
+    --text-secondary: #8a8680;
+    --text-muted:     #4a4845;
+    --text-dim:       #2a2825;
+    --green:  #2d6a3a;
+    --red:    #8a3030;
+}
+
+/* ===== ТЕМА: СВЕТЛАЯ ===== */
+[data-theme="light"] {
+    --bg-base:      #f5f3ef;
+    --bg-surface:   #ffffff;
+    --bg-hover:     #eeebe6;
+    --border:       rgba(0, 0, 0, 0.08);
+    --border-md:    rgba(0, 0, 0, 0.15);
+    --gold:         #9a6e30;
+    --gold-light:   #b98c50;
+    --text-primary:   #1a1814;
+    --text-secondary: #5a5550;
+    --text-muted:     #9a9690;
+    --text-dim:       #c0bdb8;
+    --green:  #2d6a3a;
+    --red:    #8a3030;
+}
+
+/* ===== ТЕМА: ТЁМНАЯ БОРДО ===== */
+[data-theme="dark-red"] {
+    --bg-base:      #0a080a;
+    --bg-surface:   #110f11;
+    --bg-hover:     #161216;
+    --border:       rgba(255, 255, 255, 0.07);
+    --border-md:    rgba(255, 255, 255, 0.12);
+    --gold:         #8b2635;
+    --gold-light:   #a83040;
+    --text-primary:   #f0ece4;
+    --text-secondary: #8a8080;
+    --text-muted:     #4a4045;
+    --text-dim:       #2a2025;
+    --green:  #2d6a3a;
+    --red:    #8a3030;
+}

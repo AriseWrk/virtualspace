@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Объекты — ПТС{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
+.theme-pts .page-tag{color:#5a8cc8}
+.cat-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;flex-wrap:wrap;align-items:stretch}
+.cat-tab{padding:10px 18px;font-size:11px;letter-spacing:1px;color:#4a4845;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
+.cat-tab:hover{color:#8a8680}
+.cat-tab.active{color:#5a8cc8;border-bottom-color:#5a8cc8}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.obj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.obj-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:16px 18px;transition:all .2s}
+.obj-card:hover{border-color:rgba(90,140,200,.3);transform:translateY(-2px);color:inherit}
+.obj-name{font-size:13px;color:#f0ece4;font-weight:400;margin-bottom:4px}
+.obj-address{font-size:11px;color:#3a3835;margin-bottom:10px;line-height:1.5}
+.obj-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)}
+.obj-engineer{font-size:10px;color:#2a2825}
+.obj-to{font-size:10px;color:#4a4845}
+.obj-to--soon{color:#b98c50}
+.add-cat-form{background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:16px 18px;margin-bottom:20px}
+.color-picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.color-opt{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.color-opt.selected{border-color:rgba(255,255,255,.5)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-pts">
+
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">ПТС</span>
+            <a href="{{ url_for('pts.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'pts.dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('pts.objects') }}"
+               class="sidebar-link active">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5v6l7 4 7-4V5z" opacity=".15"/><path d="M8 1L1 5l7 4 7-4z" opacity=".6" fill="currentColor"/></svg>
+                Объекты
+            </a>
+        </div>
+        {% if categories %}
+        <div class="sidebar-section">
+            <span class="sidebar-label">Категории</span>
+            {% for cat in categories %}
+            <a href="{{ url_for('pts.objects', cat=cat.id) }}"
+               class="sidebar-link {% if active_cat == cat.id %}active{% endif %}">
+                <div style="width:8px;height:8px;border-radius:50%;background:{{ cat.color }};flex-shrink:0"></div>
+                {{ cat.name }}
+                <span style="margin-left:auto;font-size:10px;color:#2a2825">{{ cat.objects.count() }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-content">
+
+        <div class="page-header">
+            <div>
+                <div class="page-tag">ПТС</div>
+                <h1 class="page-title">
+                    {% if current_category %}{{ current_category.name }}{% else %}Объекты{% endif %}
+                </h1>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('pts.create_object', cat=active_cat) }}" class="btn btn--primary">+ Объект</a>
+            </div>
+        </div>
+
+        {# ===== ДОБАВИТЬ КАТЕГОРИЮ ===== #}
+        <div class="add-cat-form">
+            <div style="font-size:9px;letter-spacing:3px;color:#3a3835;text-transform:uppercase;margin-bottom:10px">Новая категория</div>
+            <form method="POST" action="{{ url_for('pts.add_category') }}">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                    <div class="form-group" style="flex:2;min-width:150px">
+                        <label class="form-label">Название *</label>
+                        <input type="text" name="name" class="form-input" required placeholder="Почты Москва">
+                    </div>
+                    <div class="form-group" style="flex:2;min-width:150px">
+                        <label class="form-label">Описание</label>
+                        <input type="text" name="description" class="form-input" placeholder="Необязательно">
+                    </div>
+                    <div class="form-group" style="min-width:120px">
+                        <label class="form-label">Цвет метки</label>
+                        <div class="color-picker-row">
+                            {% for clr in ['#b98c50','#5a8cc8','#4caf6b','#e06060','#7a6eaa','#3cb478','#c8643c'] %}
+                            <div class="color-opt {% if loop.first %}selected{% endif %}"
+                                 style="background:{{ clr }}"
+                                 onclick="selectColor(this, '{{ clr }}')"></div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="color" id="color-input" value="#b98c50">
+                    </div>
+                    <div style="padding-bottom:0">
+                        <button type="submit" class="btn btn--primary">Добавить</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {# ===== КАТЕГОРИЙНЫЕ ТАБЫ ===== #}
+        {% if categories %}
+        <div class="cat-tabs">
+            {% for cat in categories %}
+            <a href="{{ url_for('pts.objects', cat=cat.id) }}"
+               class="cat-tab {% if active_cat == cat.id %}active{% endif %}">
+                <div class="cat-dot" style="background:{{ cat.color }}"></div>
+                {{ cat.name }}
+                <span style="font-size:10px;color:#2a2825;margin-left:2px">({{ cat.objects.count() }})</span>
+            </a>
+            {% endfor %}
+            {% if current_category and current_category.objects.count() == 0 %}
+            <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px">
+                <form method="POST" action="{{ url_for('pts.delete_category', cat_id=current_category.id) }}"
+                      onsubmit="return confirm('Удалить категорию «{{ current_category.name }}»?')">
+                    <button type="submit" class="action-link action-link--danger" style="font-size:10px">
+                        Удалить категорию
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# ===== СПИСОК ОБЪЕКТОВ ===== #}
+        {% if objects_list %}
+        <div class="obj-grid">
+            {% for obj in objects_list %}
+            <a href="{{ url_for('pts.object_detail', obj_id=obj.id) }}" class="obj-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+                    <div class="obj-name">{{ obj.name }}</div>
+                    <span class="badge badge--{{ obj.status }}" style="font-size:9px;white-space:nowrap;margin-left:8px">
+                        {{ obj.status_label }}
+                    </span>
+                </div>
+                {% if obj.address %}
+                <div class="obj-address">📍 {{ obj.address }}</div>
+                {% endif %}
+                {% if obj.systems %}
+                <div style="font-size:11px;color:#3a3835;margin-bottom:8px">🔧 {{ obj.systems }}</div>
+                {% endif %}
+                <div class="obj-footer">
+                    <span class="obj-engineer">
+                        {% if obj.engineer %}👷 {{ obj.engineer.full_name }}{% endif %}
+                    </span>
+                    <span class="obj-to {% if obj.next_to_date %}obj-to--soon{% endif %}">
+                        {% if obj.next_to_date %}
+                        ТО: {{ obj.next_to_date.strftime('%d.%m.%Y') }}
+                        {% elif obj.last_service %}
+                        Посл.: {{ obj.last_service.date.strftime('%d.%m.%Y') }}
+                        {% endif %}
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        <div class="table-footer">Объектов: {{ objects_list|length }}</div>
+
+        {% elif current_category %}
+        <div class="empty-state">
+            <div class="empty-icon">🏢</div>
+            <div class="empty-text">В категории «{{ current_category.name }}» объектов нет</div>
+            <a href="{{ url_for('pts.create_object', cat=active_cat) }}" class="btn btn--primary">
+                Добавить первый объект
+            </a>
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <div class="empty-text">Сначала создайте категорию объектов</div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectColor(el, color) {
+    document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('color-input').value = color;
+}
+</script>
+{% endblock %}

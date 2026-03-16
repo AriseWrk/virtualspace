@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Проекты — Инженер{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-engineer .sidebar-link.active{background:rgba(185,140,80,.06);color:#b98c50;border-left-color:#b98c50}
+.theme-engineer .page-tag{color:#b98c50}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.proj-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:20px 22px;transition:all .2s}
+.proj-card:hover{border-color:rgba(185,140,80,.3);transform:translateY(-2px)}
+.proj-card--in_progress{border-left:3px solid #b98c50}
+.proj-card--completed{border-left:3px solid #2d6a3a}
+.proj-card--planning{border-left:3px solid #3a3835}
+.proj-card--on_hold{border-left:3px solid #8a3030}
+.proj-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.proj-name{font-size:14px;color:#f0ece4;font-weight:400;line-height:1.3}
+.proj-client{font-size:11px;color:#3a3835;margin-top:4px}
+.proj-address{font-size:11px;color:#4a4845;margin-bottom:12px;line-height:1.5}
+.proj-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.04)}
+.proj-engineer{font-size:11px;color:#3a3835}
+.proj-date{font-size:10px;color:#2a2825;letter-spacing:1px}
+.progress-wrap{margin-top:10px}
+.progress-label{display:flex;justify-content:space-between;margin-bottom:5px}
+.progress-text{font-size:10px;color:#3a3835;letter-spacing:1px}
+.progress-pct{font-size:10px;color:#b98c50}
+.progress-bar{height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:#b98c50;border-radius:2px;transition:width .4s}
+.progress-fill--done{background:#2d6a3a}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-engineer">
+    {% include "engineer/_sidebar.html" %}
+    <div class="sidebar-content">
+
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Инженер</div>
+                <h1 class="page-title">Мои проекты</h1>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('engineer.create_project') }}" class="btn btn--primary">+ Новый проект</a>
+            </div>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom:20px">
+            {% for val, label in [('','Все'),('planning','Планирование'),('in_progress','В работе'),('on_hold','Приостановлен'),('completed','Завершён')] %}
+            <a href="{{ url_for('engineer.projects', status=val) }}"
+               class="filter-tab {% if status_filter == val %}filter-tab--active{% endif %}">
+                {{ label }}
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if projects %}
+        <div class="proj-grid">
+            {% for p in projects %}
+            <a href="{{ url_for('engineer.project_detail', project_id=p.id) }}"
+               class="proj-card proj-card--{{ p.status }}">
+                <div class="proj-header">
+                    <div>
+                        <div class="proj-name">{{ p.name }}</div>
+                        {% if p.client %}
+                        <div class="proj-client">{{ p.client }}</div>
+                        {% endif %}
+                    </div>
+                    <span class="badge badge--{{ p.status }}">{{ p.status_label }}</span>
+                </div>
+
+                {% if p.address %}
+                <div class="proj-address">📍 {{ p.address }}</div>
+                {% endif %}
+
+                <div class="progress-wrap">
+                    <div class="progress-label">
+                        <span class="progress-text">Чеклист</span>
+                        <span class="progress-pct">{{ p.checklist_done }}/{{ p.checklist|length }} · {{ p.checklist_progress }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if p.checklist_progress == 100 %}progress-fill--done{% endif %}"
+                             style="width:{{ p.checklist_progress }}%"></div>
+                    </div>
+                </div>
+
+                <div class="proj-footer">
+                    <span class="proj-engineer">{{ p.engineer.full_name }}</span>
+                    <span class="proj-date">{{ p.updated_at.strftime('%d.%m.%Y') }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        <div class="table-footer">Проектов: {{ projects|length }}</div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🏗</div>
+            <div class="empty-text">
+                {% if status_filter %}Нет проектов с таким статусом{% else %}Проектов пока нет{% endif %}
+            </div>
+            <a href="{{ url_for('engineer.create_project') }}" class="btn btn--primary">Создать первый проект</a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

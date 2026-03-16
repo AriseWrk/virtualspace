@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Создать заказ — Склад{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Склад / Заказы</div>
+            <h1 class="page-title">Создать заказ</h1>
+        </div>
+        <a href="{{ url_for('warehouse.orders') }}" class="btn btn--ghost">← Назад</a>
+    </div>
+
+    <form method="POST" class="form-card" id="order-form">
+        <div class="form-row">
+            <div class="form-group form-group--wide">
+                <label class="form-label">Объект / назначение *</label>
+                <input type="text" name="object_name" class="form-input" required
+                       placeholder="ТРЦ Парк — Мытищи, монтаж СКС">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Назначить инженеру</label>
+                <select name="assigned_to_id" class="form-select">
+                    <option value="">— Не назначен —</option>
+                    {% for eng in engineers %}
+                    <option value="{{ eng.id }}">{{ eng.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Примечание</label>
+            <textarea name="notes" class="form-textarea" rows="2"
+                      placeholder="Срочно, доставить до 20.03..."></textarea>
+        </div>
+
+        <div class="form-section-title">Позиции заказа</div>
+        <div id="order-items">
+            <div class="order-item-row">
+                <select name="item_id[]" class="form-select order-item-select" required>
+                    <option value="">— Выберите позицию —</option>
+                    {% for item in items %}
+                    <option value="{{ item.id }}" data-unit="{{ item.unit }}">
+                        {{ item.name }} ({{ item.quantity }} {{ item.unit }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <input type="number" name="quantity[]" class="form-input order-qty-input"
+                       placeholder="Кол-во" step="0.01" min="0.01" required>
+                <span class="order-unit">шт</span>
+                <button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn--ghost btn--sm" style="margin-top:10px" onclick="addRow()">
+            + Добавить позицию
+        </button>
+
+        <div class="form-actions" style="margin-top:2rem">
+            <a href="{{ url_for('warehouse.orders') }}" class="btn btn--ghost">Отмена</a>
+            <button type="submit" class="btn btn--primary">Создать заказ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const rowTemplate = document.querySelector('.order-item-row').cloneNode(true);
+
+function addRow() {
+    const newRow = rowTemplate.cloneNode(true);
+    newRow.querySelector('select').value = '';
+    newRow.querySelector('input').value = '';
+    newRow.querySelector('.order-unit').textContent = 'шт';
+    document.getElementById('order-items').appendChild(newRow);
+    bindUnit(newRow);
+}
+
+function removeRow(btn) {
+    const rows = document.querySelectorAll('.order-item-row');
+    if (rows.length > 1) btn.closest('.order-item-row').remove();
+}
+
+function bindUnit(row) {
+    row.querySelector('select').addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        row.querySelector('.order-unit').textContent = opt.dataset.unit || 'шт';
+    });
+}
+document.querySelectorAll('.order-item-row').forEach(bindUnit);
+</script>
+{% endblock %}

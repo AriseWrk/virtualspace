@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Заявка на транспорт — Гараж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-garage .sidebar-link.active{background:rgba(200,100,60,.06);color:#c8643c;border-left-color:#c8643c}
+.theme-garage .page-tag{color:#c8643c}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-garage">
+    {% include "garage/_sidebar.html" %}
+    <div class="sidebar-content">
+        <div class="page-wrapper page-wrapper--narrow" style="padding:0">
+            <div class="page-tag">Гараж</div>
+            <h1 class="page-title" style="margin-bottom:24px">Заявка на транспорт</h1>
+
+            <form method="POST" class="form-card">
+                <div class="form-row">
+                    <div class="form-group form-group--wide">
+                        <label class="form-label">Цель поездки / Объект *</label>
+                        <input type="text" name="destination" class="form-input" required
+                               placeholder="Объект №7 — Сергиев Посад, монтажные работы">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Количество пассажиров</label>
+                        <input type="number" name="passengers" class="form-input"
+                               value="1" min="1" max="9">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Дата выезда *</label>
+                        <input type="date" name="date" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Время выезда *</label>
+                        <input type="time" name="time" class="form-input" required value="09:00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Примерное время возврата</label>
+                        <input type="time" name="return_time" class="form-input" value="18:00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Предпочтительный транспорт</label>
+                        <select name="vehicle_pref" class="form-select">
+                            <option value="">— Любой доступный —</option>
+                            <option value="largus">Lada Largus</option>
+                            <option value="transit">Ford Transit</option>
+                            <option value="gazel">Газель Next</option>
+                            <option value="uaz">УАЗ Патриот</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Нужна перевозка груза?</label>
+                        <select name="cargo" class="form-select">
+                            <option value="no">Нет</option>
+                            <option value="small">Да, небольшой груз</option>
+                            <option value="large">Да, крупный груз</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Примечание</label>
+                    <textarea name="notes" class="form-textarea" rows="3"
+                              placeholder="Дополнительные пожелания..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{{ url_for('garage.dashboard') }}" class="btn btn--ghost">Отмена</a>
+                    <button type="submit" class="btn btn--primary">Подать заявку</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

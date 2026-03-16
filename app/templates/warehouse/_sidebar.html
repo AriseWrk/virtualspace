@@ -1,0 +1,33 @@
+<nav class="left-sidebar">
+    <div class="sidebar-section">
+        <span class="sidebar-label">Склад</span>
+
+        <a href="{{ url_for('warehouse.index') }}"
+           class="sidebar-link {% if request.endpoint == 'warehouse.index' %}active{% endif %}">
+            📦 Остатки
+        </a>
+        <a href="{{ url_for('warehouse.orders') }}"
+           class="sidebar-link {% if request.endpoint == 'warehouse.orders' %}active{% endif %}">
+            📋 Заказы
+        </a>
+        <a href="#" class="sidebar-link">
+            📤 Перемещения
+        </a>
+        <a href="#" class="sidebar-link">
+            📋 Инвентаризации
+        </a>
+    </div>
+
+    <div class="sidebar-section">
+        <span class="sidebar-label">Действия</span>
+        <a href="{{ url_for('warehouse.create_order') }}" class="sidebar-link">
+            + Новый заказ
+        </a>
+        <a href="{{ url_for('warehouse.add_item') }}" class="sidebar-link">
+            + Добавить позицию
+        </a>
+        <a href="{{ url_for('warehouse.export_items') }}" class="sidebar-link">
+            ↓ Экспорт в Excel
+        </a>
+    </div>
+</nav>

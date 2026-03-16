@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Заказы — Склад{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Склад</div>
+            <h1 class="page-title">Заказы</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost">← Склад</a>
+            <a href="{{ url_for('warehouse.create_order') }}" class="btn btn--primary">+ Создать заказ</a>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        {% for val, label in [('','Все'),('new','Новые'),('in_progress','В работе'),('issued','Выдан'),('cancelled','Отменён')] %}
+        <a href="{{ url_for('warehouse.orders', status=val) }}"
+           class="filter-tab {% if status_filter == val %}filter-tab--active{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if orders %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Номер</th><th>Объект</th><th>Инженер</th>
+                    <th>Позиций</th><th>Статус</th><th>Дата</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="td-number">{{ order.number }}</td>
+                    <td>{{ order.object_name }}</td>
+                    <td>{{ order.assignee.full_name if order.assignee else '—' }}</td>
+                    <td class="td-muted">{{ order.total_items }}</td>
+                    <td><span class="badge badge--{{ order.status }}">{{ order.status_label }}</span></td>
+                    <td class="td-date">{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                    <td class="td-actions">
+                        <form method="POST"
+                              action="{{ url_for('warehouse.update_order_status', order_id=order.id) }}"
+                              style="display:inline">
+                            <select name="status" class="filter-select" style="padding:4px 8px;font-size:11px;"
+                                    onchange="this.form.submit()">
+                                {% for val, lbl in order.STATUS_CHOICES.items() %}
+                                <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ lbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                        <a href="{{ url_for('warehouse.export_order', order_id=order.id) }}"
+                           class="action-link">↓ Excel</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Заказов: {{ orders|length }}</div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">Заказов нет</div>
+        <a href="{{ url_for('warehouse.create_order') }}" class="btn btn--primary">Создать заказ</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
