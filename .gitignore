@@ -1,0 +1,16 @@
+# Виртуальное окружение
+.venv/
+venv/
+ENV/
+
+# Временные файлы Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Настройки PyCharm
+.idea/
+
+# Базы данных (если используешь SQLite локально)
+*.sqlite3
+instance/
