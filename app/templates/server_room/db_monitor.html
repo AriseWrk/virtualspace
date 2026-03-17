@@ -1,38 +1,91 @@
 {% extends "base.html" %}
-{% block title %}База данных — Серверная{% endblock %}
+{% block title %}БД Мониторинг — АБ Радонеж{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 <style>
-.theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
-.theme-server .page-tag{color:#3cb478}
-.theme-server .metric-card--accent{border-top-color:#3cb478}
+    /* Сетки метрик */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
 
-.db-version{font-size:11px;color:#3a3835;margin-top:6px;font-family:monospace}
+    .metric-card {
+        background: #0f0f11;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 6px;
+        padding: 20px;
+        text-align: left;
+    }
 
-.progress-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:8px;overflow:hidden}
-.progress-fill{height:100%;border-radius:2px;transition:width .5s}
-.progress-fill--green{background:#2d6a3a}
-.progress-fill--gold{background:#b98c50}
-.progress-fill--red{background:#8a3030}
+    .metric-label {
+        color: #4a4845;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
 
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.stat-row:last-child{border:none}
-.stat-label{font-size:12px;color:#4a4845}
-.stat-value{font-size:13px;color:#c0bab2;font-weight:400}
-.stat-value--good{color:#4caf6b}
-.stat-value--warn{color:#b98c50}
-.stat-value--bad{color:#e06060}
+    .metric-value {
+        color: #f0ece4;
+        font-size: 20px;
+        font-family: 'Monaco', 'Consolas', monospace;
+    }
 
-.table-tag{font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:2px;text-transform:uppercase;background:rgba(60,180,120,.1);color:#3cb478}
+    .section-title {
+        color: #f0ece4;
+        font-size: 14px;
+        margin: 25px 0 15px 0;
+        padding-left: 10px;
+        border-left: 2px solid #3cb478;
+    }
 
-.error-box{background:rgba(138,48,48,.12);border:1px solid rgba(138,48,48,.3);border-radius:6px;padding:20px 24px;color:#e06060;font-size:13px}
+    .btn-add {
+        background: #3cb478;
+        color: #000;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+    }
 
-.refresh-btn{font-size:10px;letter-spacing:2px;color:#3cb478;border:1px solid rgba(60,180,120,.25);padding:6px 14px;border-radius:3px;background:none;cursor:pointer;text-transform:uppercase;transition:all .15s}
-.refresh-btn:hover{background:rgba(60,180,120,.08)}
+    /* Таблица */
+    .db-table-container {
+        background: #0f0f11;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 15px;
+    }
 
-.slow-query{background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:3px;padding:10px 12px;margin-bottom:8px}
-.sq-duration{font-size:10px;color:#e06060;letter-spacing:1px;margin-bottom:4px}
-.sq-text{font-size:11px;color:#4a4845;font-family:monospace;white-space:pre-wrap;word-break:break-all}
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        color: #8a8680;
+    }
+
+    thead {
+        background: rgba(255,255,255,0.03);
+        color: #f0ece4;
+    }
+
+    th, td {
+        padding: 12px 15px;
+    }
+
+    tr {
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
 </style>
 {% endblock %}
 
@@ -43,203 +96,68 @@
     <div class="sidebar-content">
         <div class="page-header">
             <div>
-                <div class="page-tag">Серверная</div>
-                <h1 class="page-title">Мониторинг базы данных</h1>
-                {% if not db_stats.error %}
-                <div class="db-version">{{ db_stats.pg_version }}</div>
-                {% endif %}
+                <div class="page-tag">Инфраструктура</div>
+                <h1 class="page-title">Статистика PostgreSQL</h1>
             </div>
-            <div class="header-actions">
-                <button class="refresh-btn" onclick="location.reload()">↻ Обновить</button>
-                <div class="page-date" id="db-time"></div>
-            </div>
+            <a href="{{ url_for('server_room.dashboard') }}" class="btn-add">← НАЗАД В СЕРВЕРНУЮ</a>
         </div>
 
         {% if db_stats.error %}
-        <div class="error-box">
-            <strong>Ошибка подключения к БД:</strong><br>
-            {{ db_stats.error }}
-        </div>
-
+            <div style="color:#e06060; background:rgba(224,96,96,0.1); padding:20px; border-radius:6px; border:1px solid #e06060">
+                Ошибка сбора данных: {{ db_stats.error }}
+            </div>
         {% else %}
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Общий размер</div>
+                    <div class="metric-value">{{ db_stats.db_size }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Соединения</div>
+                    <div class="metric-value">{{ db_stats.connections }} / {{ db_stats.max_connections }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Эффективность кэша</div>
+                    <div class="metric-value" style="color:#4caf6b">{{ db_stats.cache_hit_ratio }}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Всего таблиц</div>
+                    <div class="metric-value">{{ db_stats.tables|length }}</div>
+                </div>
+            </div>
 
-        {# ===== МЕТРИКИ ===== #}
-        <div class="metrics-grid" style="margin-bottom:24px">
-            <div class="metric-card metric-card--accent">
-                <div class="metric-label">Размер БД</div>
-                <div class="metric-value">{{ db_stats.db_size }}</div>
-                <div class="metric-sub">ab_radonezh</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Соединений активно</div>
-                <div class="metric-value {% if db_stats.connections > db_stats.max_connections * 0.8 %}metric-value--warn{% endif %}">
-                    {{ db_stats.connections }}
-                </div>
-                <div class="metric-sub">из {{ db_stats.max_connections }} макс.</div>
-                <div class="progress-bar">
-                    {% set conn_pct = (db_stats.connections / db_stats.max_connections * 100)|int %}
-                    <div class="progress-fill {% if conn_pct > 80 %}progress-fill--red{% elif conn_pct > 50 %}progress-fill--gold{% else %}progress-fill--green{% endif %}"
-                         style="width:{{ conn_pct }}%"></div>
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Cache Hit Ratio</div>
-                <div class="metric-value {% if db_stats.transactions.cache_hit_ratio >= 95 %}" style="color:#4caf6b{% elif db_stats.transactions.cache_hit_ratio >= 80 %}" style="color:#b98c50{% else %}" style="color:#e06060{% endif %}">
-                    {{ db_stats.transactions.cache_hit_ratio }}%
-                </div>
-                <div class="metric-sub">Эффективность кэша</div>
-                <div class="progress-bar">
-                    <div class="progress-fill {% if db_stats.transactions.cache_hit_ratio >= 95 %}progress-fill--green{% elif db_stats.transactions.cache_hit_ratio >= 80 %}progress-fill--gold{% else %}progress-fill--red{% endif %}"
-                         style="width:{{ db_stats.transactions.cache_hit_ratio }}%"></div>
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Транзакций</div>
-                <div class="metric-value">{{ db_stats.transactions.commits }}</div>
-                <div class="metric-sub">Откатов: {{ db_stats.transactions.rollbacks }}</div>
-            </div>
-        </div>
+            <div class="section-title">Системные и пользовательские таблицы</div>
 
-        {# ===== ТАБЛИЦЫ ===== #}
-        <div class="section" style="margin-bottom:24px">
-            <div class="section-title" style="margin-bottom:14px">Таблицы базы данных</div>
-            {% if db_stats.tables %}
-            <div class="table-wrap">
-                <table class="data-table">
+            <div class="db-table-container">
+                <table>
                     <thead>
                         <tr>
-                            <th>Таблица</th>
-                            <th>Записей</th>
-                            <th>Размер</th>
-                            <th>Удалённых строк</th>
-                            <th>Последний vacuum</th>
+                            <th style="text-align:left">Имя таблицы</th>
+                            <th style="text-align:right">Строк (approx)</th>
+                            <th style="text-align:right">Размер</th>
+                            <th style="text-align:right">Dead Rows</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for t in db_stats.tables %}
                         <tr>
-                            <td>
-                                <span class="table-tag">table</span>
-                                <span style="margin-left:8px;color:#f0ece4;font-weight:400">{{ t.table_name }}</span>
-                            </td>
-                            <td style="color:#c0bab2;font-weight:400">
-                                {{ '{:,}'.format(t.row_count).replace(',', ' ') }}
-                            </td>
-                            <td class="td-muted">{{ t.total_size }}</td>
-                            <td>
-                                {% if t.dead_rows > 100 %}
-                                <span style="color:#e06060">{{ t.dead_rows }}</span>
-                                {% else %}
-                                <span class="td-muted">{{ t.dead_rows }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="td-date">
-                                {% if t.last_autovacuum %}
-                                {{ t.last_autovacuum.strftime('%d.%m.%Y %H:%M') }}
-                                {% elif t.last_vacuum %}
-                                {{ t.last_vacuum.strftime('%d.%m.%Y %H:%M') }}
-                                {% else %}
-                                <span class="td-muted">Не выполнялся</span>
-                                {% endif %}
+                            <td style="color:#eee">{{ t.table_name }}</td>
+                            <td style="text-align:right">{{ "{:,}".format(t.row_count | default(0)).replace(',', ' ') }}</td>
+                            <td style="text-align:right">{{ t.total_size }}</td>
+                            <td style="text-align:right; {% if t.dead_rows > 100 %}color:#e06060{% endif %}">
+                                {{ t.dead_rows | default(0) }}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="table-footer">Таблиц: {{ db_stats.tables|length }}</div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🗄</div>
-                <div class="empty-text">Таблицы не найдены</div>
-            </div>
-            {% endif %}
-        </div>
 
-        {# ===== СТАТИСТИКА ТРАНЗАКЦИЙ ===== #}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-            <div class="form-card" style="padding:20px 22px">
-                <div class="section-title" style="margin-bottom:14px">Транзакции</div>
-                <div class="stat-row">
-                    <span class="stat-label">Успешных commit</span>
-                    <span class="stat-value stat-value--good">{{ '{:,}'.format(db_stats.transactions.commits).replace(',', ' ') }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Откатов rollback</span>
-                    <span class="stat-value {% if db_stats.transactions.rollbacks > 100 %}stat-value--warn{% endif %}">
-                        {{ db_stats.transactions.rollbacks }}
-                    </span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Блоков прочитано с диска</span>
-                    <span class="stat-value">{{ '{:,}'.format(db_stats.transactions.blks_read).replace(',', ' ') }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Блоков из кэша</span>
-                    <span class="stat-value stat-value--good">{{ '{:,}'.format(db_stats.transactions.blks_hit).replace(',', ' ') }}</span>
-                </div>
+            <div style="margin-top:25px; padding: 10px; border-top: 1px solid rgba(255,255,255,0.05); font-size:10px; color:#4a4845; display: flex; justify-content: space-between;">
+                <span>Статус узла: Ok</span>
+                <span>Engine: {{ db_stats.pg_version }}</span>
             </div>
-
-            <div class="form-card" style="padding:20px 22px">
-                <div class="section-title" style="margin-bottom:14px">Соединения</div>
-                <div class="stat-row">
-                    <span class="stat-label">Активных соединений</span>
-                    <span class="stat-value">{{ db_stats.connections }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Максимум разрешено</span>
-                    <span class="stat-value">{{ db_stats.max_connections }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Использовано</span>
-                    {% set pct = (db_stats.connections / db_stats.max_connections * 100)|int %}
-                    <span class="stat-value {% if pct > 80 %}stat-value--bad{% elif pct > 50 %}stat-value--warn{% else %}stat-value--good{% endif %}">
-                        {{ pct }}%
-                    </span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Свободно</span>
-                    <span class="stat-value stat-value--good">{{ db_stats.max_connections - db_stats.connections }}</span>
-                </div>
-            </div>
-        </div>
-
-        {# ===== ДОЛГИЕ ЗАПРОСЫ ===== #}
-        <div class="section">
-            <div class="section-title" style="margin-bottom:14px">
-                Медленные запросы
-                <span style="font-size:10px;color:#3a3835;margin-left:8px;letter-spacing:0">(выполняются дольше 1 сек)</span>
-            </div>
-            {% if db_stats.slow_queries %}
-                {% for q in db_stats.slow_queries %}
-                <div class="slow-query">
-                    <div class="sq-duration">PID {{ q.pid }} · {{ q.duration }} · {{ q.state }}</div>
-                    <div class="sq-text">{{ q.query[:300] }}{% if q.query|length > 300 %}...{% endif %}</div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div style="padding:20px;background:#0f0f11;border:1px solid rgba(255,255,255,.06);border-radius:4px;text-align:center">
-                <span style="font-size:13px;color:#2d6a3a">✓</span>
-                <span style="font-size:12px;color:#3a3835;margin-left:8px">Медленных запросов нет</span>
-            </div>
-            {% endif %}
-        </div>
-
         {% endif %}
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function tick() {
-    const d = new Date();
-    const el = document.getElementById('db-time');
-    if (el) el.textContent = 'Обновлено: ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-tick();
-
-// Авто-обновление каждые 30 секунд
-setTimeout(() => location.reload(), 30000);
-</script>
 {% endblock %}

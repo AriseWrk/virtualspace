@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{% if vehicle %}Редактировать{% else %}Добавить автомобиль{% endif %} — Гараж{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag" style="color:#c8643c">Гараж</div>
+            <h1 class="page-title">
+                {% if vehicle %}{{ vehicle.name }}{% else %}Новый автомобиль{% endif %}
+            </h1>
+        </div>
+        <a href="{{ url_for('garage.vehicles') }}" class="btn btn--ghost">← Назад</a>
+    </div>
+
+    <form method="POST" class="form-card">
+
+        <div class="form-section-title">Основные данные</div>
+        <div class="form-row">
+            <div class="form-group form-group--wide">
+                <label class="form-label">Марка и модель *</label>
+                <input type="text" name="name" class="form-input" required
+                       value="{{ vehicle.name if vehicle else '' }}"
+                       placeholder="Lada Largus, Ford Transit…">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Госномер *</label>
+                <input type="text" name="plate" class="form-input" required
+                       value="{{ vehicle.plate if vehicle else '' }}"
+                       placeholder="А123БВ77"
+                       style="text-transform:uppercase;letter-spacing:2px">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Год выпуска</label>
+                <input type="number" name="year" class="form-input"
+                       min="1990" max="2030"
+                       value="{{ vehicle.year if vehicle else '' }}"
+                       placeholder="2021">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Цвет</label>
+                <input type="text" name="color" class="form-input"
+                       value="{{ vehicle.color if vehicle else '' }}"
+                       placeholder="Белый, Серебристый…">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Статус</label>
+                <select name="status" class="form-select" id="sel-status">
+                    <option value="available">Свободен</option>
+                    <option value="on_route">В пути</option>
+                    <option value="maintenance">ТО / Ремонт</option>
+                    <option value="inactive">Выведен</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Пробег, км</label>
+                <input type="number" name="mileage" class="form-input"
+                       min="0" value="{{ vehicle.mileage if vehicle else 0 }}">
+            </div>
+            <div class="form-group form-group--wide">
+                <label class="form-label">Ответственный водитель</label>
+                <select name="driver_id" class="form-select" id="sel-driver">
+                    <option value="">— Не назначен —</option>
+                    {% for d in drivers %}
+                    <option value="{{ d.id }}">{{ d.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-section-title">Документы</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Последнее ТО</label>
+                <input type="date" name="sto_date" class="form-input"
+                       value="{{ vehicle.sto_date.isoformat() if vehicle and vehicle.sto_date else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Следующее ТО</label>
+                <input type="date" name="sto_next_date" class="form-input"
+                       value="{{ vehicle.sto_next_date.isoformat() if vehicle and vehicle.sto_next_date else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">ОСАГО действует до</label>
+                <input type="date" name="insurance_date" class="form-input"
+                       value="{{ vehicle.insurance_date.isoformat() if vehicle and vehicle.insurance_date else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Техосмотр действует до</label>
+                <input type="date" name="inspection_date" class="form-input"
+                       value="{{ vehicle.inspection_date.isoformat() if vehicle and vehicle.inspection_date else '' }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Примечание</label>
+            <textarea name="notes" class="form-textarea" rows="2"
+                      placeholder="Особенности, дополнительная информация…">{{ vehicle.notes if vehicle else '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('garage.vehicles') }}" class="btn btn--ghost">Отмена</a>
+            {% if vehicle %}
+            <form method="POST"
+                  action="{{ url_for('garage.delete_vehicle', vid=vehicle.id) }}"
+                  style="display:inline"
+                  onsubmit="return confirm('Удалить «{{ vehicle.name }}»? Это удалит все поездки.')">
+                <button type="submit" class="btn btn--ghost" style="color:#e06060;border-color:rgba(224,96,96,.3)">
+                    Удалить
+                </button>
+            </form>
+            {% endif %}
+            <button type="submit" class="btn btn--primary">
+                {% if vehicle %}Сохранить{% else %}Добавить{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    {% if vehicle %}
+    var st = "{{ vehicle.status }}";
+    var dr = "{{ vehicle.driver_id or '' }}";
+    var ss = document.getElementById('sel-status');
+    var sd = document.getElementById('sel-driver');
+    if (ss) for (var i=0;i<ss.options.length;i++) if(ss.options[i].value===st){ss.selectedIndex=i;break;}
+    if (sd && dr) for (var i=0;i<sd.options.length;i++) if(sd.options[i].value===dr){sd.selectedIndex=i;break;}
+    {% endif %}
+});
+</script>
+{% endblock %}

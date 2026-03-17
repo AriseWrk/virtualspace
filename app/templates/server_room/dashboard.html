@@ -1,28 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Серверная — АБ Радонеж{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 <style>
+/* ТВОИ ОРИГИНАЛЬНЫЕ СТИЛИ БЕЗ ИЗМЕНЕНИЙ */
 .theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
 .theme-server .page-tag{color:#3cb478}
 .theme-server .metric-card--accent{border-top-color:#3cb478}
 .server-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:28px}
-.server-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:18px 20px}
+.server-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:18px 20px;position:relative;transition:all 0.3s ease}
 .server-card--online{border-left:3px solid #2d6a3a}
 .server-card--offline{border-left:3px solid #8a3030}
-.server-card--warn{border-left:3px solid #b98c50}
 .srv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
 .srv-name{font-size:14px;color:#f0ece4;font-weight:400}
 .srv-role{font-size:11px;color:#4a4845;margin-top:3px}
-.srv-status{font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:2px;text-transform:uppercase;white-space:nowrap}
+.srv-status{font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:2px;text-transform:uppercase}
 .srv-status--online{background:rgba(45,106,58,.15);color:#4caf6b}
 .srv-status--offline{background:rgba(138,48,48,.15);color:#e06060}
-.srv-status--warn{background:rgba(185,140,80,.15);color:#b98c50}
 .srv-details{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .srv-detail{font-size:11px;color:#3a3835}
 .srv-detail span{color:#8a8680}
 .pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:#2d6a3a;box-shadow:0 0 6px rgba(45,106,58,.8);margin-right:6px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000}
+.modal-content{background:#0f0f11;width:350px;margin:100px auto;padding:25px;border:1px solid rgba(255,255,255,0.1);border-radius:8px}
+.modal-input{width:100%;background:#1a1a1c;border:1px solid #333;color:#eee;padding:10px;margin-bottom:12px;font-size:12px}
+.btn-add{background:#3cb478;color:#000;border:none;padding:6px 14px;border-radius:3px;font-size:10px;font-weight:bold;cursor:pointer}
+.btn-submit{width:100%;background:#3cb478;border:none;padding:12px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn-close{color:#4a4845;background:none;border:none;cursor:pointer;width:100%;margin-top:10px;font-size:11px}
+.delete-btn{position:absolute;bottom:10px;right:10px;color:#333;text-decoration:none;font-size:9px;letter-spacing:1px}
+.delete-btn:hover{color:#e06060}
 </style>
 {% endblock %}
 
@@ -36,116 +45,103 @@
                 <div class="page-tag">Инфраструктура</div>
                 <h1 class="page-title">Серверная</h1>
             </div>
-            <div class="page-meta">
-                <div class="online-badge"><span class="pulse"></span>Мониторинг активен</div>
-                <div class="page-date" id="srv-time"></div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <button class="btn-add" onclick="document.getElementById('add-modal').style.display='block'">+ ДОБАВИТЬ УСТРОЙСТВО</button>
+                <div class="page-meta">
+                    <div class="online-badge"><span class="pulse" id="ping-pulse"></span>Мониторинг активен</div>
+                    <div class="page-date" id="srv-time"></div>
+                </div>
             </div>
         </div>
 
-        <div class="metrics-grid" style="margin-bottom:24px">
+        <div class="metrics-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:24px">
             <div class="metric-card metric-card--accent">
-                <div class="metric-label">Всего устройств</div>
-                <div class="metric-value">{{ servers|length }}</div>
-                <div class="metric-sub">В инвентаре</div>
+                <div class="metric-label">CPU Load</div>
+                <div class="metric-value" id="cpu-load">{{ sys.cpu }}%</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Онлайн</div>
-                <div class="metric-value" style="color:#4caf6b">
-                    {{ servers|selectattr('status','eq','online')|list|length }}
-                </div>
-                <div class="metric-sub">Работают</div>
+                <div class="metric-label">RAM Usage</div>
+                <div class="metric-value" id="ram-usage">{{ sys.ram }}%</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Офлайн / Сервис</div>
-                <div class="metric-value" style="color:#e06060">
-                    {{ servers|rejectattr('status','eq','online')|list|length }}
-                </div>
-                <div class="metric-sub">Требуют внимания</div>
+                <div class="metric-label">В сети</div>
+                <div class="metric-value" id="count-online" style="color:#4caf6b">0</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Доступность</div>
-                <div class="metric-value">
-                    {{ ((servers|selectattr('status','eq','online')|list|length / servers|length) * 100)|int }}%
-                </div>
-                <div class="metric-sub">Uptime</div>
+                <div class="metric-label">Cache Hit</div>
+                <div class="metric-value">{{ db_stats.cache_hit_ratio }}%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Uptime</div>
+                <div class="metric-value" style="font-size: 14px; margin-top: 5px;">{{ sys.boot }}</div>
             </div>
         </div>
 
-        <div class="section-title" style="margin-bottom:14px">Устройства</div>
         <div class="server-grid">
             {% for srv in servers %}
-            <div class="server-card server-card--{{ srv.status }}">
+            <div class="server-card server-card--offline" id="card-{{ srv.id }}">
                 <div class="srv-header">
                     <div>
                         <div class="srv-name">{{ srv.name }}</div>
                         <div class="srv-role">{{ srv.role }}</div>
                     </div>
-                    <span class="srv-status srv-status--{{ srv.status }}">
-                        {% if srv.status == 'online' %}Online
-                        {% elif srv.status == 'offline' %}Offline
-                        {% else %}Сервис{% endif %}
-                    </span>
+                    <span class="srv-status srv-status--offline" id="status-{{ srv.id }}">Checking</span>
                 </div>
                 <div class="srv-details">
                     <div class="srv-detail">IP: <span>{{ srv.ip }}</span></div>
                     <div class="srv-detail">ОС: <span>{{ srv.os }}</span></div>
                 </div>
+                <a href="{{ url_for('server_room.delete_server', id=srv.id) }}" class="delete-btn" onclick="return confirm('Удалить {{ srv.name }}?')">DELETE</a>
             </div>
             {% endfor %}
         </div>
+    </div>
+</div>
 
-        {% if not db_stats.error %}
-        <div class="section" style="margin-top:8px">
-            <div class="section-header">
-                <div class="section-title">База данных PostgreSQL</div>
-                <a href="{{ url_for('server_room.db_monitor') }}" class="section-link">Подробнее →</a>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
-                <div class="metric-card">
-                    <div class="metric-label">Размер БД</div>
-                    <div class="metric-value" style="font-size:22px">{{ db_stats.db_size }}</div>
-                    <div class="metric-sub">ab_radonezh</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Соединений</div>
-                    <div class="metric-value" style="font-size:22px">{{ db_stats.connections }}</div>
-                    <div class="metric-sub">из {{ db_stats.max_connections }} макс.</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Cache Hit Ratio</div>
-                    <div class="metric-value" style="font-size:22px;color:#4caf6b">
-                        {{ db_stats.transactions.cache_hit_ratio }}%
-                    </div>
-                    <div class="metric-sub">Эффективность кэша</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Таблиц в БД</div>
-                    <div class="metric-value" style="font-size:22px">{{ db_stats.tables|length }}</div>
-                    <div class="metric-sub">Пользовательских</div>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <div class="section" style="margin-top:8px">
-            <div class="section-title" style="margin-bottom:12px">База данных PostgreSQL</div>
-            <div style="background:rgba(138,48,48,.1);border:1px solid rgba(138,48,48,.25);border-radius:4px;padding:14px 18px;font-size:12px;color:#e06060">
-                Ошибка подключения к БД: {{ db_stats.error }}
-            </div>
-        </div>
-        {% endif %}
-
+<div class="modal-overlay" id="add-modal">
+    <div class="modal-content">
+        <form action="{{ url_for('server_room.add_server') }}" method="POST">
+            <input type="text" name="name" class="modal-input" placeholder="Имя устройства" required>
+            <input type="text" name="ip" class="modal-input" placeholder="IP адрес" required>
+            <input type="text" name="role" class="modal-input" placeholder="Назначение">
+            <input type="text" name="os" class="modal-input" placeholder="ОС">
+            <button type="submit" class="btn-submit">ВНЕСТИ В РЕЕСТР</button>
+            <button type="button" class="btn-close" onclick="document.getElementById('add-modal').style.display='none'">ОТМЕНА</button>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function tick() {
-    const d = new Date();
-    document.getElementById('srv-time').textContent =
-        d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+function tick() { document.getElementById('srv-time').textContent = new Date().toLocaleTimeString('ru-RU'); }
+setInterval(tick, 1000); tick();
+
+function updateMonitor() {
+    fetch("{{ url_for('server_room.get_realtime_status') }}")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('cpu-load').innerText = data.sys.cpu + '%';
+            document.getElementById('ram-usage').innerText = data.sys.ram + '%';
+
+            let on = 0;
+            data.servers.forEach(srv => {
+                const card = document.getElementById(`card-${srv.id}`);
+                const status = document.getElementById(`status-${srv.id}`);
+                if (card && srv.status === 'online') {
+                    on++;
+                    card.className = 'server-card server-card--online';
+                    status.className = 'srv-status srv-status--online';
+                    status.innerText = 'Online';
+                } else if (card) {
+                    card.className = 'server-card server-card--offline';
+                    status.className = 'srv-status srv-status--offline';
+                    status.innerText = 'Offline';
+                }
+            });
+            document.getElementById('count-online').innerText = on;
+        });
 }
-tick();
-setInterval(tick, 1000);
+setInterval(updateMonitor, 15000); updateMonitor();
 </script>
 {% endblock %}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Заказ {{ order.number }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:24px 32px}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px}
+.doc-company{font-size:11px;color:#555;line-height:1.6}
+.doc-title{font-size:20px;font-weight:bold;letter-spacing:1px}
+.doc-number{font-size:12px;color:#666;margin-top:3px}
+.doc-meta{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:5px 16px;margin-bottom:18px;font-size:12px}
+.doc-meta dt{color:#666}
+.doc-meta dd{font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+thead th{background:#f0f0f0;border:1px solid #ccc;padding:7px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+tbody td{border:1px solid #ddd;padding:6px 10px;vertical-align:middle}
+tbody tr:nth-child(even) td{background:#fafafa}
+.text-right{text-align:right}
+.doc-footer{margin-top:32px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 24px;font-size:11px}
+.sign-line{border-top:1px solid #333;margin-top:32px;padding-top:4px;color:#666}
+.no-print{display:block}
+@media print{body{padding:12px 16px}.no-print{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+    <div>
+        <div class="doc-company">АБ Радонеж<br>Заявка на выдачу материалов</div>
+    </div>
+    <div style="text-align:right">
+        <div class="doc-title">ЗАКАЗ СО СКЛАДА</div>
+        <div class="doc-number">{{ order.number }}</div>
+        <div style="margin-top:6px;font-size:11px">
+            {% if order.status == 'issued' %}
+            <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Выдан</span>
+            {% elif order.status == 'cancelled' %}
+            <span style="background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Отменён</span>
+            {% elif order.status == 'in_progress' %}
+            <span style="background:#cce5ff;color:#004085;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">В работе</span>
+            {% else %}
+            <span style="background:#e2e3e5;color:#383d41;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Новый</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<dl class="doc-meta">
+    <dt>Объект / назначение:</dt>
+    <dd>{{ order.object_name }}</dd>
+    <dt>Дата:</dt>
+    <dd>{{ order.created_at.strftime('%d.%m.%Y') }}</dd>
+    <dt>Инженер:</dt>
+    <dd>{{ order.assignee.full_name if order.assignee else '—' }}</dd>
+    <dt>Создал:</dt>
+    <dd>{{ order.created_by.full_name if order.created_by else '—' }}</dd>
+    {% if order.notes %}
+    <dt>Примечание:</dt>
+    <dd colspan="3">{{ order.notes }}</dd>
+    {% endif %}
+    {% if order.issued_at %}
+    <dt>Выдан:</dt>
+    <dd>{{ order.issued_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+    {% endif %}
+</dl>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:40px">#</th>
+            <th>Наименование</th>
+            <th>Артикул</th>
+            <th style="width:50px">Ед.</th>
+            <th class="text-right" style="width:90px">Заказано</th>
+            <th class="text-right" style="width:90px">Выдано</th>
+            <th style="width:80px">Отметка</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for oi in order.items %}
+        <tr>
+            <td style="color:#999">{{ loop.index }}</td>
+            <td>{{ oi.item.name if oi.item else '—' }}</td>
+            <td style="color:#666;font-size:11px">{{ oi.item.article or '—' if oi.item else '—' }}</td>
+            <td style="color:#666">{{ oi.item.unit if oi.item else '' }}</td>
+            <td class="text-right">{{ oi.quantity | int if oi.quantity == oi.quantity | int else oi.quantity }}</td>
+            <td class="text-right">
+                {% set issued = oi.issued_quantity or 0 %}
+                {% if issued > 0 %}{{ issued | int if issued == issued | int else issued }}{% else %}—{% endif %}
+            </td>
+            <td style="border-bottom:1px solid #999"></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <div>
+        <div>Выдал:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Получил:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Дата выдачи:</div>
+        <div class="sign-line">
+            {{ order.issued_at.strftime('%d.%m.%Y') if order.issued_at else '____________' }}
+        </div>
+    </div>
+</div>
+
+<div class="no-print" style="margin-top:28px;text-align:center">
+    <button onclick="window.print()"
+            style="padding:10px 28px;font-size:13px;cursor:pointer;background:#111;color:#fff;border:none;border-radius:4px;margin-right:10px">
+        🖨 Печать
+    </button>
+    <button onclick="window.close()"
+            style="padding:10px 20px;font-size:13px;cursor:pointer;background:#eee;color:#333;border:1px solid #ccc;border-radius:4px">
+        Закрыть
+    </button>
+</div>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Инженеры — Сервисная служба{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag" style="color:#e07840">Сервисная служба</div>
+            <h1 class="page-title">Инженеры</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('service.dashboard') }}" class="btn btn--ghost">← Назад</a>
+            {% if can_create %}
+            <a href="{{ url_for('service.create_task') }}" class="btn btn--primary">+ Задание</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if engineer_stats %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+        {% for es in engineer_stats %}
+        <div style="background:var(--bg-surface);border:1px solid var(--border);
+                    border-radius:var(--radius);padding:20px 22px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                <div style="width:40px;height:40px;border-radius:50%;
+                            background:rgba(185,140,80,.15);border:1px solid rgba(185,140,80,.3);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:14px;color:var(--gold);flex-shrink:0">
+                    {{ es.user.full_name[:2].upper() }}
+                </div>
+                <div>
+                    <div style="font-size:14px;color:var(--text-primary);font-weight:400">
+                        {{ es.user.full_name }}
+                    </div>
+                    <div style="font-size:10px;color:var(--text-muted);letter-spacing:1px">
+                        {{ es.user.role | upper }}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+                <div style="background:var(--bg-base);border-radius:var(--radius);padding:10px">
+                    <div style="font-size:20px;font-family:var(--font-display);color:var(--text-primary)">
+                        {{ es.total }}
+                    </div>
+                    <div style="font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase">
+                        Всего
+                    </div>
+                </div>
+                <div style="background:var(--bg-base);border-radius:var(--radius);padding:10px">
+                    <div style="font-size:20px;font-family:var(--font-display);color:var(--gold)">
+                        {{ es.active }}
+                    </div>
+                    <div style="font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase">
+                        Активных
+                    </div>
+                </div>
+                <div style="background:var(--bg-base);border-radius:var(--radius);padding:10px">
+                    <div style="font-size:20px;font-family:var(--font-display);color:#4caf6b">
+                        {{ es.done }}
+                    </div>
+                    <div style="font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase">
+                        Выполнено
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">👷</div>
+        <div class="empty-text">Инженеров нет</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

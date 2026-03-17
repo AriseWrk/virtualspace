@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Инвентаризация {{ check.number }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:20px 28px}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:16px}
+.doc-company{font-size:10px;color:#555;line-height:1.6}
+.doc-title{font-size:18px;font-weight:bold;letter-spacing:1px}
+.doc-number{font-size:12px;color:#666;margin-top:3px}
+.doc-meta{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:4px 16px;margin-bottom:16px;font-size:11px}
+.doc-meta dt{color:#666}
+.doc-meta dd{font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
+thead th{background:#f0f0f0;border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+tbody td{border:1px solid #ddd;padding:5px 8px;vertical-align:middle}
+tbody tr:nth-child(even) td{background:#fafafa}
+.text-right{text-align:right}
+.diff-neg td{background:#fff0f0!important}
+.diff-pos td{background:#f0fff0!important}
+.doc-footer{margin-top:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px;font-size:10px}
+.sign-line{border-top:1px solid #333;margin-top:28px;padding-top:4px;color:#666}
+.no-print{display:block}
+.summary{display:flex;gap:24px;margin-bottom:14px;font-size:11px}
+.summary-item{background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:6px 14px}
+.summary-item strong{display:block;font-size:18px;font-weight:bold}
+@media print{body{padding:10px 14px}.no-print{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+    <div>
+        <div class="doc-company">АБ Радонеж<br>Инвентаризационная ведомость</div>
+    </div>
+    <div style="text-align:right">
+        <div class="doc-title">ИНВЕНТАРИЗАЦИЯ</div>
+        <div class="doc-number">{{ check.number }}</div>
+    </div>
+</div>
+
+<dl class="doc-meta">
+    <dt>Дата начала:</dt>
+    <dd>{{ check.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+    <dt>Статус:</dt>
+    <dd>{{ check.status_label }}</dd>
+    <dt>Провёл:</dt>
+    <dd>{{ check.created_by.full_name if check.created_by else '—' }}</dd>
+    <dt>Завершена:</dt>
+    <dd>{{ check.finished_at.strftime('%d.%m.%Y') if check.finished_at else '—' }}</dd>
+    {% if check.notes %}
+    <dt>Примечание:</dt>
+    <dd colspan="3">{{ check.notes }}</dd>
+    {% endif %}
+</dl>
+
+{% set filled = check.lines | selectattr('actual_qty', 'ne', None) | list %}
+{% set diffs  = filled | selectattr('has_discrepancy') | list %}
+<div class="summary">
+    <div class="summary-item">
+        <strong>{{ check.total_lines }}</strong>позиций всего
+    </div>
+    <div class="summary-item">
+        <strong>{{ filled | length }}</strong>заполнено
+    </div>
+    <div class="summary-item" {% if diffs %}style="background:#fff0f0;border-color:#f5c6cb"{% endif %}>
+        <strong>{{ diffs | length }}</strong>расхождений
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:36px">#</th>
+            <th>Наименование</th>
+            <th>Артикул</th>
+            <th>Категория</th>
+            <th style="width:44px">Ед.</th>
+            <th class="text-right" style="width:80px">По учёту</th>
+            <th class="text-right" style="width:80px">Факт</th>
+            <th class="text-right" style="width:80px">Расхождение</th>
+            <th style="width:100px">Примечание</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for line in check.lines %}
+        {% set diff = line.diff %}
+        <tr class="{% if diff is not none and diff < 0 %}diff-neg{% elif diff is not none and diff > 0 %}diff-pos{% endif %}">
+            <td style="color:#999">{{ loop.index }}</td>
+            <td>{{ line.item.name if line.item else '—' }}</td>
+            <td style="color:#666;font-size:10px">{{ line.item.article or '' if line.item else '' }}</td>
+            <td style="color:#666;font-size:10px">{{ line.item.category.name if line.item and line.item.category else '' }}</td>
+            <td style="color:#666">{{ line.item.unit if line.item else '' }}</td>
+            <td class="text-right">{{ line.expected_qty | int if line.expected_qty == line.expected_qty | int else line.expected_qty }}</td>
+            <td class="text-right">
+                {% if line.actual_qty is not none %}
+                    {{ line.actual_qty | int if line.actual_qty == line.actual_qty | int else line.actual_qty }}
+                {% else %}—{% endif %}
+            </td>
+            <td class="text-right" style="font-weight:{% if diff is not none and diff != 0 %}bold{% else %}normal{% endif %}">
+                {% if diff is none %}—
+                {% elif diff == 0 %}0
+                {% elif diff > 0 %}+{{ diff | int if diff == diff | int else diff }}
+                {% else %}{{ diff | int if diff == diff | int else diff }}
+                {% endif %}
+            </td>
+            <td style="color:#666;font-size:10px">{{ line.notes or '' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <div>
+        <div>Председатель комиссии:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Член комиссии:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Кладовщик:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+</div>
+
+<div class="no-print" style="margin-top:24px;text-align:center">
+    <button onclick="window.print()"
+            style="padding:10px 28px;font-size:13px;cursor:pointer;background:#111;color:#fff;border:none;border-radius:4px;margin-right:10px">
+        🖨 Печать
+    </button>
+    <button onclick="window.close()"
+            style="padding:10px 20px;font-size:13px;cursor:pointer;background:#eee;color:#333;border:1px solid #ccc;border-radius:4px">
+        Закрыть
+    </button>
+</div>
+</body>
+</html>

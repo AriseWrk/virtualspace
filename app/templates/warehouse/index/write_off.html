@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Приходование {{ doc.number }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:24px 32px}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px}
+.doc-company{font-size:11px;color:#555;line-height:1.6}
+.doc-title{font-size:20px;font-weight:bold;letter-spacing:1px}
+.doc-number{font-size:12px;color:#666;margin-top:3px}
+.doc-meta{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:5px 16px;margin-bottom:18px;font-size:12px}
+.doc-meta dt{color:#666}
+.doc-meta dd{font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+thead th{background:#f0f0f0;border:1px solid #ccc;padding:7px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+tbody td{border:1px solid #ddd;padding:6px 10px;vertical-align:middle}
+tbody tr:nth-child(even) td{background:#fafafa}
+.text-right{text-align:right}
+.total-row td{font-weight:bold;border-top:2px solid #999;background:#f5f5f5}
+.doc-footer{margin-top:32px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 24px;font-size:11px}
+.sign-line{border-top:1px solid #333;margin-top:32px;padding-top:4px;color:#666}
+.no-print{display:block}
+@media print{body{padding:12px 16px}.no-print{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+    <div>
+        <div class="doc-company">
+            АБ Радонеж<br>
+            Документ складского учёта
+        </div>
+    </div>
+    <div style="text-align:right">
+        <div class="doc-title">ПРИХОДОВАНИЕ</div>
+        <div class="doc-number">{{ doc.number }}</div>
+        <div style="margin-top:6px;font-size:11px">
+            {% if doc.status == 'confirmed' %}
+            <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Проведён</span>
+            {% elif doc.status == 'cancelled' %}
+            <span style="background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Отменён</span>
+            {% else %}
+            <span style="background:#e2e3e5;color:#383d41;padding:2px 8px;border-radius:3px;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:1px">Черновик</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<dl class="doc-meta">
+    <dt>Поставщик:</dt>
+    <dd>{{ doc.supplier or '—' }}</dd>
+    <dt>Дата прихода:</dt>
+    <dd>{{ (doc.receipt_date or doc.created_at).strftime('%d.%m.%Y') }}</dd>
+    <dt>Создал:</dt>
+    <dd>{{ doc.created_by.full_name if doc.created_by else '—' }}</dd>
+    <dt>Дата создания:</dt>
+    <dd>{{ doc.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+    {% if doc.notes %}
+    <dt>Примечание:</dt>
+    <dd colspan="3">{{ doc.notes }}</dd>
+    {% endif %}
+</dl>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:40px">#</th>
+            <th>Наименование</th>
+            <th>Артикул</th>
+            <th style="width:50px">Ед.</th>
+            <th class="text-right" style="width:90px">Количество</th>
+            <th class="text-right" style="width:110px">Себестоимость</th>
+            <th class="text-right" style="width:110px">Сумма</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% set total = namespace(val=0) %}
+        {% for ri in doc.items %}
+        {% set summa = ri.quantity * (ri.unit_cost or 0) %}
+        {% set total.val = total.val + summa %}
+        <tr>
+            <td style="color:#999">{{ loop.index }}</td>
+            <td>{{ ri.item.name if ri.item else '—' }}</td>
+            <td style="color:#666;font-size:11px">{{ ri.item.article or '—' if ri.item else '—' }}</td>
+            <td style="color:#666">{{ ri.item.unit if ri.item else '' }}</td>
+            <td class="text-right">{{ ri.quantity | int if ri.quantity == ri.quantity | int else ri.quantity }}</td>
+            <td class="text-right">
+                {% if ri.unit_cost %}{{ '{:,.2f}'.format(ri.unit_cost) }} ₽{% else %}—{% endif %}
+            </td>
+            <td class="text-right">{{ '{:,.2f}'.format(summa) }} ₽</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td colspan="5"></td>
+            <td class="text-right">Итого:</td>
+            <td class="text-right">{{ '{:,.2f}'.format(total.val) }} ₽</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <div>
+        <div>Принял:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Сдал:</div>
+        <div class="sign-line">подпись / ФИО</div>
+    </div>
+    <div>
+        <div>Дата:</div>
+        <div class="sign-line">{{ doc.created_at.strftime('%d.%m.%Y') }}</div>
+    </div>
+</div>
+
+<div class="no-print" style="margin-top:28px;text-align:center">
+    <button onclick="window.print()"
+            style="padding:10px 28px;font-size:13px;cursor:pointer;background:#111;color:#fff;border:none;border-radius:4px;margin-right:10px">
+        🖨 Печать
+    </button>
+    <button onclick="window.close()"
+            style="padding:10px 20px;font-size:13px;cursor:pointer;background:#eee;color:#333;border:1px solid #ccc;border-radius:4px">
+        Закрыть
+    </button>
+</div>
+</body>
+</html>

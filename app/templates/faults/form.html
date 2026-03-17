@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{% if record %}Редактировать{% else %}Новая запись{% endif %} — База неисправностей{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">
+                <a href="{{ url_for('faults.index') }}" style="color:var(--gold)">База неисправностей</a>
+            </div>
+            <h1 class="page-title">
+                {% if record %}Редактировать запись{% else %}Новая запись{% endif %}
+            </h1>
+        </div>
+        <a href="{{ url_for('faults.index') }}" class="btn btn--ghost">← Назад</a>
+    </div>
+
+    <form method="POST" class="form-card">
+
+        <div class="form-row">
+            <div class="form-group form-group--wide">
+                <label class="form-label">Заголовок проблемы *</label>
+                <input type="text" name="title" class="form-input" required
+                       value="{{ record.title if record else '' }}"
+                       placeholder="Камера не отображается в NVR после перезагрузки">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Категория</label>
+                <select name="category" class="form-select" id="sel-cat">
+                    {% for key, label in categories.items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Оборудование (марка, модель)</label>
+            <input type="text" name="equipment" class="form-input"
+                   value="{{ record.equipment if record else '' }}"
+                   placeholder="Hikvision DS-2CD2143G2-I, NVR DS-7608NI-K2">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Симптомы / Описание проблемы *</label>
+            <textarea name="symptoms" class="form-textarea" rows="5" required
+                      placeholder="Подробно опиши что происходит, какие ошибки видишь, при каких условиях возникает…">{{ record.symptoms if record else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Решение *</label>
+            <textarea name="solution" class="form-textarea" rows="6" required
+                      placeholder="Пошагово опиши что помогло. Чем подробнее — тем полезнее для коллег…">{{ record.solution if record else '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group form-group--wide">
+                <label class="form-label">Теги (через запятую)</label>
+                <input type="text" name="tags" class="form-input"
+                       value="{{ record.tags if record else '' }}"
+                       placeholder="ip-камера, питание, dhcp, прошивка">
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-secondary)">
+                    <input type="checkbox" name="is_public"
+                           style="accent-color:var(--gold);width:15px;height:15px"
+                           {% if not record or record.is_public %}checked{% endif %}>
+                    Видно всем коллегам
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('faults.index') }}" class="btn btn--ghost">Отмена</a>
+            <button type="submit" class="btn btn--primary">
+                {% if record %}Сохранить{% else %}Добавить в базу{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    var cat = "{{ record.category if record else 'other' }}";
+    var sel = document.getElementById('sel-cat');
+    if (sel) for (var i=0;i<sel.options.length;i++) if(sel.options[i].value===cat){sel.selectedIndex=i;break;}
+});
+</script>
+{% endblock %}

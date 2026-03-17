@@ -3,23 +3,19 @@
         <span class="sidebar-label">Серверная</span>
         <a href="{{ url_for('server_room.dashboard') }}"
            class="sidebar-link {% if request.endpoint == 'server_room.dashboard' %}active{% endif %}">
-            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-            Мониторинг
+            📊 Мониторинг
         </a>
         <a href="{{ url_for('server_room.db_monitor') }}"
            class="sidebar-link {% if request.endpoint == 'server_room.db_monitor' %}active{% endif %}">
-            <svg viewBox="0 0 16 16" fill="currentColor"><ellipse cx="8" cy="5" rx="6" ry="2.5" opacity=".3"/><path d="M2 5v3c0 1.38 2.69 2.5 6 2.5S14 9.38 14 8V5" opacity=".5" fill="currentColor"/><path d="M2 8v3c0 1.38 2.69 2.5 6 2.5S14 12.38 14 11V8" fill="currentColor" opacity=".8"/></svg>
-            База данных
+            🗄️ База данных
+        </a>
+        <a href="{{ url_for('server_room.logs') }}"
+           class="sidebar-link {% if request.endpoint == 'server_room.logs' %}active{% endif %}">
+            📜 Логи
         </a>
         <a href="{{ url_for('server_room.network') }}"
            class="sidebar-link {% if request.endpoint == 'server_room.network' %}active{% endif %}">
-            <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".15"/><path d="M8 2v12M2 8h12" stroke="currentColor" fill="none" stroke-width="1"/></svg>
-            Сеть
-        </a>
-        <a href="{{ url_for('server_room.docs') }}"
-           class="sidebar-link {% if request.endpoint == 'server_room.docs' %}active{% endif %}">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
-            Документация
+            🌐 Сеть
         </a>
     </div>
 </nav>

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Перемещения — Склад{% endblock %}
+
+{% block extra_css %}
+<style>
+.wh-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap}
+.wh-tab{padding:11px 20px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+.wh-tab:hover{color:var(--text-secondary)}
+.wh-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+.move-type-receipt    { color:#4caf6b }
+.move-type-write_off  { color:#e06060 }
+.move-type-transfer   { color:#5a8cc8 }
+.move-type-order_out  { color:var(--gold) }
+.move-type-adjustment { color:#7a6eaa }
+
+.move-qty-pos { color:#4caf6b !important; font-weight:500 }
+.move-qty-neg { color:#e06060 !important; font-weight:500 }
+
+.new-movement-panel {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Склад</div>
+            <h1 class="page-title">Перемещения</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('warehouse.export_movements', type=move_type) }}"
+               class="btn btn--ghost btn--sm">↓ Excel</a>
+            <button class="btn btn--primary" onclick="toggleMoveForm()">+ Перемещение</button>
+        </div>
+    </div>
+
+    <div class="wh-tabs">
+        <a href="{{ url_for('warehouse.index') }}"      class="wh-tab">Остатки</a>
+        <a href="{{ url_for('warehouse.receipts') }}"   class="wh-tab">Приходования</a>
+        <a href="{{ url_for('warehouse.write_offs') }}" class="wh-tab">Списания</a>
+        <a href="{{ url_for('warehouse.movements') }}"  class="wh-tab active">Перемещения</a>
+        <a href="{{ url_for('warehouse.inventory') }}"  class="wh-tab">Инвентаризации</a>
+        <a href="{{ url_for('warehouse.orders') }}"     class="wh-tab">Заказы</a>
+    </div>
+
+    {# ── Форма нового перемещения ── #}
+    <div id="move-form" class="new-movement-panel" style="display:none">
+        <div style="font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:14px">
+            Новое перемещение
+        </div>
+        <form method="POST" action="{{ url_for('warehouse.create_movement') }}">
+            <div class="form-row" style="margin-bottom:12px">
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Позиция *</label>
+                    <select name="item_id" class="form-select" required>
+                        <option value="">— Выберите —</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}" data-location="{{ item.location or '' }}">
+                            {{ item.name }} — {{ item.quantity }} {{ item.unit }}
+                            {% if item.location %}({{ item.location }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="max-width:130px">
+                    <label class="form-label">Количество *</label>
+                    <input type="number" name="quantity" class="form-input"
+                           step="0.001" min="0.001" placeholder="0" required>
+                </div>
+            </div>
+            <div class="form-row" style="margin-bottom:12px">
+                <div class="form-group">
+                    <label class="form-label">Откуда</label>
+                    <input type="text" name="from_location" id="from-loc" class="form-input"
+                           placeholder="Стеллаж А-1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Куда *</label>
+                    <input type="text" name="to_location" class="form-input"
+                           placeholder="Стеллаж Б-3" required>
+                </div>
+                <div class="form-group form-group--wide">
+                    <label class="form-label">Примечание</label>
+                    <input type="text" name="notes" class="form-input" placeholder="Необязательно">
+                </div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button type="submit" class="btn btn--primary btn--sm">Зарегистрировать</button>
+                <button type="button" class="btn btn--ghost btn--sm" onclick="toggleMoveForm()">Отмена</button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Фильтры ── #}
+    <div class="filter-bar">
+        <a href="{{ url_for('warehouse.movements') }}"
+           class="filter-tab {% if not move_type %}filter-tab--active{% endif %}">Все</a>
+        {% for key, label in move_types.items() %}
+        <a href="{{ url_for('warehouse.movements', type=key) }}"
+           class="filter-tab {% if move_type == key %}filter-tab--active{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+
+        <form method="GET" style="margin-left:auto;display:flex;gap:8px">
+            {% if move_type %}<input type="hidden" name="type" value="{{ move_type }}">{% endif %}
+            <input type="text" name="q" value="{{ q }}" class="filter-input"
+                   placeholder="Поиск по позиции…" style="max-width:220px">
+            <button type="submit" class="btn btn--ghost btn--sm">Найти</button>
+        </form>
+    </div>
+
+    {% if docs %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Дата</th><th>Тип</th><th>Позиция</th>
+                    <th style="text-align:right">Кол-во</th>
+                    <th>Откуда → Куда</th><th>Документ</th>
+                    <th>Себест.</th><th>Автор</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in docs %}
+                <tr>
+                    <td class="td-date">{{ m.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        <span class="move-type-{{ m.move_type }}" style="font-size:11px;letter-spacing:1px">
+                            {{ m.type_label }}
+                        </span>
+                    </td>
+                    <td class="td-name">{{ m.item.name if m.item else '—' }}</td>
+                    <td style="text-align:right">
+                        <span class="{% if m.quantity >= 0 %}move-qty-pos{% else %}move-qty-neg{% endif %}">
+                            {% if m.quantity >= 0 %}+{% endif %}{{ m.quantity | int if m.quantity == m.quantity | int else m.quantity }}
+                        </span>
+                    </td>
+                    <td class="td-muted" style="font-size:11px">
+                        {% if m.from_location or m.to_location %}
+                            {{ m.from_location or '—' }} → {{ m.to_location or '—' }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="td-muted" style="font-size:11px">
+                        {{ m.document_ref or '—' }}
+                    </td>
+                    <td class="td-muted" style="font-size:11px">
+                        {% if m.unit_cost %}{{ '{:,.2f}'.format(m.unit_cost) }} ₽{% else %}—{% endif %}
+                    </td>
+                    <td class="td-muted" style="font-size:11px">
+                        {{ m.created_by.full_name if m.created_by else '—' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Записей: {{ pagination.total }} · Страница {{ pagination.page }} из {{ pagination.pages }}</div>
+
+    {# ── Пагинация ── #}
+    {% if pagination.pages > 1 %}
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('warehouse.movements', page=pagination.prev_num, type=move_type, q=q) }}"
+           class="btn btn--ghost btn--sm">← Назад</a>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <a href="{{ url_for('warehouse.movements', page=p, type=move_type, q=q) }}"
+               class="btn btn--sm {% if p == pagination.page %}btn--primary{% else %}btn--ghost{% endif %}">
+                {{ p }}
+            </a>
+            {% else %}
+            <span style="padding:7px 4px;color:var(--text-muted)">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('warehouse.movements', page=pagination.next_num, type=move_type, q=q) }}"
+           class="btn btn--ghost btn--sm">Вперёд →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔄</div>
+        <div class="empty-text">Движений нет</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleMoveForm() {
+    const f = document.getElementById('move-form');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+// Автозаполнение поля «откуда» из текущего location позиции
+document.querySelector('[name="item_id"]')?.addEventListener('change', function() {
+    const loc = this.options[this.selectedIndex].dataset.location;
+    document.getElementById('from-loc').value = loc || '';
+});
+</script>
+{% endblock %}

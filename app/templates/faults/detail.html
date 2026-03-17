@@ -1,0 +1,77 @@
+<!-- detail.html -->
+{% extends "base.html" %}
+{% block title %}{{ record.title }} — База неисправностей{% endblock %}
+{% block extra_css %}
+<style>
+.fault-section { background:var(--bg-surface);border:1px solid var(--border);
+                 border-radius:var(--radius);padding:20px 24px;margin-bottom:16px }
+.fault-section-title { font-size:9px;letter-spacing:3px;text-transform:uppercase;
+                       color:var(--text-muted);margin-bottom:12px }
+.fault-body { font-size:13px;color:var(--text-secondary);line-height:1.8;
+              white-space:pre-wrap }
+.fault-tag { background:rgba(185,140,80,.1);color:var(--gold);
+             padding:3px 10px;border-radius:12px;font-size:11px;display:inline-block;margin:2px }
+.cat-badge { font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+             padding:3px 10px;border-radius:2px;background:rgba(90,140,200,.12);color:#5a8cc8 }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">
+                <a href="{{ url_for('faults.index') }}" style="color:var(--gold)">База неисправностей</a>
+            </div>
+            <h1 class="page-title">{{ record.title }}</h1>
+        </div>
+        <div class="header-actions">
+            {% if record.author_id == current_user.id or current_user.role == 'director' %}
+            <a href="{{ url_for('faults.edit', rec_id=record.id) }}"
+               class="btn btn--ghost btn--sm">Редактировать</a>
+            <form method="POST" action="{{ url_for('faults.delete', rec_id=record.id) }}"
+                  style="display:inline"
+                  onsubmit="return confirm('Удалить запись?')">
+                <button type="submit" class="btn btn--ghost btn--sm"
+                        style="color:#e06060;border-color:rgba(224,96,96,.3)">Удалить</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+        <span class="cat-badge">{{ record.category_label }}</span>
+        {% if record.equipment %}
+        <span style="font-size:12px;color:var(--text-muted)">🔧 {{ record.equipment }}</span>
+        {% endif %}
+        <span style="font-size:11px;color:var(--text-muted)">
+            {{ record.author.full_name if record.author else '—' }}
+            · {{ record.created_at.strftime('%d.%m.%Y') }}
+            · 👁 {{ record.views }}
+        </span>
+        {% if not record.is_public %}
+        <span style="font-size:10px;color:var(--text-muted)">🔒 Личная запись</span>
+        {% endif %}
+    </div>
+
+    <div class="fault-section">
+        <div class="fault-section-title">Симптомы / Описание проблемы</div>
+        <div class="fault-body">{{ record.symptoms }}</div>
+    </div>
+
+    <div class="fault-section" style="border-color:rgba(45,106,58,.2);background:rgba(45,106,58,.04)">
+        <div class="fault-section-title" style="color:#4caf6b">✓ Решение</div>
+        <div class="fault-body">{{ record.solution }}</div>
+    </div>
+
+    {% if record.tag_list %}
+    <div style="margin-bottom:16px">
+        {% for tag in record.tag_list %}
+        <a href="{{ url_for('faults.index', q=tag) }}" class="fault-tag">{{ tag }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('faults.index') }}" class="btn btn--ghost">← К списку</a>
+</div>
+{% endblock %}

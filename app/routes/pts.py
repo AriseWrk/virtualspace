@@ -9,6 +9,7 @@ from app.models.pts import (ObjectCategory, ServiceObject, ServiceRecord,
                              ObjectPassword, ObjectFile, ObjectEquipment)
 from app.models.user import User
 from functools import wraps
+from app.models.order import Order
 
 pts_bp = Blueprint("pts", __name__, url_prefix="/pts")
 UPLOAD_FOLDER = os.path.join("app", "static", "uploads", "objects")
@@ -317,13 +318,18 @@ def delete_object(obj_id):
 @pts_required
 def object_detail(obj_id):
     obj = ServiceObject.query.get_or_404(obj_id)
-    engineers = User.query.filter(User.role.in_(["engineer", "director"])).all()
-    return render_template("pts/object_detail.html",
-                           obj=obj,
-                           engineers=engineers,
-                           now=datetime.utcnow())
 
+    # Заказы склада по этому объекту (ищем по названию объекта)
+    obj_orders = Order.query.filter(
+        Order.object_name.ilike(f"%{obj.name}%")
+    ).order_by(Order.created_at.desc()).all()
 
+    return render_template(
+        "pts/object_detail.html",
+        obj=obj,
+        now=datetime.utcnow(),
+        obj_orders=obj_orders,
+    )
 # ===== СЕРВИСНЫЕ ЗАПИСИ =====
 
 @pts_bp.route("/objects/<int:obj_id>/record/add", methods=["POST"])

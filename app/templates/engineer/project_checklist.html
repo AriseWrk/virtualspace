@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Чеклист — {{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.checklist-group { margin-bottom: 28px; }
+.checklist-group-title {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border); font-weight: 400;
+}
+.checklist-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    transition: background .1s;
+    border-radius: var(--radius);
+}
+.checklist-item:hover { background: var(--bg-hover); }
+.checklist-cb {
+    accent-color: var(--gold);
+    width: 16px; height: 16px;
+    cursor: pointer; flex-shrink: 0;
+}
+.checklist-label {
+    flex: 1; font-size: 13px; color: var(--text-secondary); line-height: 1.4;
+}
+.checklist-label.done {
+    text-decoration: line-through; color: var(--text-muted);
+}
+.checklist-done-by {
+    font-size: 10px; color: var(--text-muted); white-space: nowrap;
+}
+.checklist-done-at {
+    font-size: 10px; color: var(--text-muted); white-space: nowrap;
+}
+
+/* Прогресс */
+.progress-header {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.progress-num {
+    font-family: var(--font-display);
+    font-size: 42px; color: var(--text-primary); line-height: 1;
+}
+.progress-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.progress-bar-wrap {
+    flex: 1; min-width: 200px;
+    background: var(--bg-hover); border-radius: 2px; height: 6px; overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%; background: var(--gold); border-radius: 2px; transition: width .4s;
+}
+
+/* Форма добавления */
+.add-item-form {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-top: 24px;
+}
+.add-item-form-title {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 12px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <div>
+            <div class="page-tag">
+                <a href="{{ url_for('engineer.projects') }}" style="color:var(--gold)">Проекты</a>
+                &nbsp;/&nbsp;
+                <a href="{{ url_for('engineer.project_detail', project_id=project.id) }}" style="color:var(--gold)">
+                    {{ project.name }}
+                </a>
+                &nbsp;/&nbsp; Чеклист
+            </div>
+            <h1 class="page-title">Чеклист монтажа</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('engineer.project_detail', project_id=project.id) }}"
+               class="btn btn--ghost">← Проект</a>
+        </div>
+    </div>
+
+    {# Прогресс #}
+    <div class="progress-header">
+        <div>
+            <div class="progress-num">{{ project.checklist_progress }}%</div>
+            <div class="progress-label">выполнено</div>
+        </div>
+        <div>
+            <div style="font-size:22px;font-family:var(--font-display);color:var(--text-secondary)">
+                {{ project.checklist_done }} / {{ project.checklist|length }}
+            </div>
+            <div class="progress-label">пунктов</div>
+        </div>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:{{ project.checklist_progress }}%"></div>
+        </div>
+    </div>
+
+    {# Список по категориям #}
+    {% if checklist_by_category %}
+        {% for category, items in checklist_by_category.items() %}
+        <div class="checklist-group">
+            <div class="checklist-group-title">
+                {{ category }}
+                <span style="margin-left:8px;color:var(--text-dim)">
+                    {{ items | selectattr('is_done') | list | length }} / {{ items|length }}
+                </span>
+            </div>
+
+            {% for item in items %}
+            <div class="checklist-item">
+                {% if can_edit_engineer %}
+                <form method="POST"
+                      action="{{ url_for('engineer.toggle_checklist', project_id=project.id, item_id=item.id) }}"
+                      style="display:contents">
+                    <input type="checkbox" class="checklist-cb"
+                           {% if item.is_done %}checked{% endif %}
+                           onchange="this.form.submit()">
+                </form>
+                {% else %}
+                <input type="checkbox" class="checklist-cb" disabled
+                       {% if item.is_done %}checked{% endif %}>
+                {% endif %}
+
+                <span class="checklist-label {% if item.is_done %}done{% endif %}">
+                    {{ item.title }}
+                </span>
+
+                {% if item.is_done %}
+                <span class="checklist-done-by">
+                    {{ item.done_by.full_name if item.done_by else '' }}
+                </span>
+                <span class="checklist-done-at">
+                    {{ item.done_at.strftime('%d.%m.%Y') if item.done_at else '' }}
+                </span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <div class="empty-text">Чеклист пуст</div>
+    </div>
+    {% endif %}
+
+    {# Форма добавления — только инженер #}
+    {% if can_edit_engineer %}
+    <div class="add-item-form">
+        <div class="add-item-form-title">Добавить пункт</div>
+        <form method="POST"
+              action="{{ url_for('engineer.add_checklist_item', project_id=project.id) }}">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                <div class="form-group" style="flex:3;min-width:200px;margin:0">
+                    <label class="form-label">Название</label>
+                    <input type="text" name="title" class="form-input" required
+                           placeholder="Монтаж видеокамер на 2 этаже…">
+                </div>
+                <div class="form-group" style="min-width:160px;margin:0">
+                    <label class="form-label">Категория</label>
+                    <select name="category" class="form-select">
+                        <option value="preparation">Подготовка</option>
+                        <option value="installation" selected>Монтаж</option>
+                        <option value="cabling">Кабельные работы</option>
+                        <option value="commissioning">Пуско-наладка</option>
+                        <option value="documentation">Документация</option>
+                        <option value="handover">Сдача объекта</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn--primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

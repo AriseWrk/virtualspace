@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Маршрут — Сервисная служба{% endblock %}
+
+{% block extra_css %}
+<style>
+#ymap { width: 100%; height: 480px; border-radius: var(--radius); overflow: hidden;
+        border: 1px solid var(--border); margin-bottom: 20px; background: #1a1a1e; }
+
+.route-stop {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+    position: relative;
+}
+.route-stop:last-child { border-bottom: none; }
+
+/* Вертикальная линия-коннектор */
+.route-stop:not(:last-child)::after {
+    content: ''; position: absolute;
+    left: 18px; top: 44px; bottom: -14px;
+    width: 2px; background: rgba(185,140,80,.2);
+}
+
+.stop-badge {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; z-index: 1;
+}
+.stop-badge--office {
+    background: rgba(255,255,255,.08); color: var(--text-secondary);
+    font-size: 16px;
+}
+.stop-badge--stop {
+    background: var(--gold); color: #0a0a0c;
+}
+
+.stop-info { flex: 1; }
+.stop-label { font-size: 14px; color: var(--text-primary); font-weight: 400; margin-bottom: 3px; }
+.stop-address { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.stop-dist {
+    font-size: 11px; color: var(--text-muted);
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.stop-dist-val { color: var(--gold); font-weight: 400; }
+
+.stop-task-link {
+    font-size: 10px; letter-spacing: 1px; color: var(--text-muted);
+    padding: 2px 8px; border-radius: 2px;
+    background: rgba(255,255,255,.04); margin-left: 8px;
+}
+.stop-task-link:hover { color: var(--gold); }
+
+.total-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; gap: 24px; align-items: center; margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.total-num {
+    font-family: var(--font-display); font-size: 36px; color: var(--text-primary); line-height: 1;
+}
+.total-sub { font-size: 10px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+
+.failed-block {
+    background: rgba(138,48,48,.08); border: 1px solid rgba(138,48,48,.2);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px;
+}
+.failed-title { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: #e06060; margin-bottom: 10px; }
+.failed-item { font-size: 12px; color: var(--text-muted); padding: 3px 0; }
+
+.nav-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #e06020; color: #fff;
+    padding: 11px 22px; border-radius: var(--radius);
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    font-family: var(--font); font-weight: 500;
+    transition: background .15s; text-decoration: none;
+}
+.nav-btn:hover { background: #f07030; color: #fff; }
+
+@media print {
+    #ymap, .header-actions, .nav-btn, .theme-switcher { display: none !important; }
+    .route-stop::after { border-color: #ccc !important; }
+    .stop-badge--stop { background: #333 !important; color: #fff !important; }
+    body { background: #fff !important; color: #000 !important; }
+    .stop-label, .stop-address { color: #000 !important; }
+    .stop-dist { color: #666 !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <div>
+            <div class="page-tag" style="color:#e07840">
+                <a href="{{ url_for('service.dashboard') }}" style="color:#e07840">Сервисная служба</a>
+                &nbsp;/&nbsp; Маршрут
+            </div>
+            <h1 class="page-title">Маршрут объезда</h1>
+        </div>
+        <div class="header-actions">
+            {% if nav_url %}
+            <a href="{{ nav_url }}" target="_blank" class="nav-btn">
+                🧭 Открыть в навигаторе
+            </a>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn--ghost btn--sm">🖨 Печать</button>
+            <a href="{{ url_for('service.dashboard') }}" class="btn btn--ghost">← Назад</a>
+        </div>
+    </div>
+
+    {% if not has_geo_key %}
+    <div class="flash flash--warning" style="margin-bottom:20px">
+        Ключ Яндекс Геокодер API не задан — адреса не геокодированы, карта и оптимизация недоступны.
+        <a href="{{ url_for('admin.users') }}" style="color:var(--gold)">Настроить в админке →</a>
+    </div>
+    {% endif %}
+
+    {% if failed %}
+    <div class="failed-block">
+        <div class="failed-title">Не удалось геокодировать ({{ failed|length }})</div>
+        {% for f in failed %}
+        <div class="failed-item">
+            <span style="color:var(--gold)">{{ f.number }}</span>
+            {{ f.label }} — <span style="font-style:italic">{{ f.address or 'адрес не указан' }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Итого #}
+    {% if route %}
+    <div class="total-card">
+        <div>
+            <div class="total-num">{{ route|length - 1 }}</div>
+            <div class="total-sub">объектов</div>
+        </div>
+        <div>
+            <div class="total-num">{{ total_km }}</div>
+            <div class="total-sub">км общий путь</div>
+        </div>
+        <div style="margin-left:auto;font-size:12px;color:var(--text-muted)">
+            Начало: <span style="color:var(--text-secondary)">{{ office_addr }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Карта #}
+    {% if maps_key and route %}
+    <div id="ymap"></div>
+    {% endif %}
+
+    {# Список маршрута #}
+    {% if route %}
+    <div style="background:var(--bg-surface);border:1px solid var(--border);
+                border-radius:var(--radius);padding:20px 24px;">
+        <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;
+                    color:var(--text-muted);margin-bottom:18px">
+            Порядок объезда
+        </div>
+
+        {% for point in route %}
+        <div class="route-stop">
+            <div class="stop-badge {% if point.is_office %}stop-badge--office{% else %}stop-badge--stop{% endif %}">
+                {% if point.is_office %}🏢{% else %}{{ point.stop_num }}{% endif %}
+            </div>
+            <div class="stop-info">
+                <div class="stop-label">
+                    {{ point.label }}
+                    {% if not point.is_office and point.task_id %}
+                    <a href="{{ url_for('service.task_detail', task_id=point.task_id) }}"
+                       class="stop-task-link">{{ point.number }}</a>
+                    {% endif %}
+                </div>
+                <div class="stop-address">{{ point.address }}</div>
+                {% if not point.is_office %}
+                <div class="stop-dist">
+                    {% if loop.index > 1 %}
+                    от предыдущей точки:
+                    <span class="stop-dist-val">{{ point.dist_label }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Кнопка "открыть в навигаторе" для одной точки #}
+            {% if not point.is_office %}
+            <a href="https://yandex.ru/maps/?pt={{ point.lon }},{{ point.lat }}&z=16&l=map"
+               target="_blank"
+               style="font-size:18px;text-decoration:none;opacity:.5;transition:opacity .15s"
+               title="Открыть на карте">📍</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🗺</div>
+        <div class="empty-text">Нет точек для построения маршрута</div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if maps_key and route %}
+<script>
+window.addEventListener('load', function() {
+    ymaps.ready(function() {
+        var map = new ymaps.Map('ymap', {
+            center: [{{ route[0].lat }}, {{ route[0].lon }}],
+            zoom: 10,
+            controls: ['zoomControl', 'fullscreenControl'],
+        });
+
+        var points = {{ route | tojson }};
+        var coords = points.map(function(p) { return [p.lat, p.lon]; });
+
+        // Линия маршрута
+        var polyline = new ymaps.Polyline(coords, {}, {
+            strokeColor: '#b98c50',
+            strokeWidth: 3,
+            strokeOpacity: 0.8,
+        });
+        map.geoObjects.add(polyline);
+
+        // Метки
+        points.forEach(function(p, i) {
+            var content = p.is_office ? '🏢' : String(p.stop_num);
+            var color   = p.is_office ? '#555555' : '#b98c50';
+            var placemark = new ymaps.Placemark(
+                [p.lat, p.lon],
+                {
+                    balloonContentHeader: p.label,
+                    balloonContentBody:   p.address,
+                    iconContent: content,
+                },
+                {
+                    preset: 'islands#darkOrangeStretchyIcon',
+                    iconColor: color,
+                }
+            );
+            map.geoObjects.add(placemark);
+        });
+
+        // Подгоняем вид под все точки
+        if (coords.length > 1) {
+            map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
+        }
+    });
+});
+</script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ maps_key }}&lang=ru_RU" type="text/javascript"></script>
+{% endif %}
+{% endblock %}

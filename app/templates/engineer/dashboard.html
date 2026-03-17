@@ -1,156 +1,280 @@
 {% extends "base.html" %}
-{% block title %}Инженер — АБ Радонеж{% endblock %}
+{% block title %}Инженер — Дашборд{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+/* ── Секции дашборда ── */
+.dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.dash-grid--wide { grid-template-columns: 1fr; }
+@media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+
+.dash-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.dash-block-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+}
+.dash-block-title {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 400;
+    display: flex; align-items: center; gap: 8px;
+}
+.dash-block-body { padding: 0; }
+
+/* ── Строка в блоке ── */
+.dash-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,.03);
+    transition: background .1s;
+}
+.dash-row:last-child { border-bottom: none; }
+.dash-row:hover { background: var(--bg-hover); }
+.dash-row-main { flex: 1; min-width: 0; }
+.dash-row-title {
+    font-size: 13px; color: var(--text-secondary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dash-row-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Статус план-задания ── */
+.st-new        { background:rgba(255,255,255,.06); color:var(--text-muted) }
+.st-assigned   { background:rgba(185,140,80,.12);  color:var(--gold) }
+.st-in_progress{ background:rgba(90,140,200,.12);  color:#5a8cc8 }
+.st-done       { background:rgba(45,106,58,.12);   color:#4caf6b }
+.st-failed     { background:rgba(138,48,48,.12);   color:#e06060 }
+
+/* ── Прогресс проекта ── */
+.proj-bar { height: 3px; background: var(--bg-hover); border-radius: 2px; margin-top: 5px; }
+.proj-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; }
+
+/* ── Метрики ── */
+.eng-metrics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px; margin-bottom: 16px;
+}
+.metric-card--eng { border-top: 2px solid #5a8cc8; }
+
+/* ── Пустое ── */
+.dash-empty {
+    padding: 24px; text-align: center;
+    font-size: 12px; color: var(--text-muted);
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="page-with-sidebar theme-engineer">
+<div class="page-wrapper">
 
-    <nav class="left-sidebar">
-        <div class="sidebar-section">
-            <span class="sidebar-label">Раздел</span>
-            <a href="{{ url_for('engineer.dashboard') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.dashboard' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-                Дашборд
-            </a>
-            <a href="{{ url_for('engineer.handbook') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.handbook' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M2 2h12v1H2zm0 3h8v1H2zm0 3h10v1H2zm0 3h6v1H2z"/></svg>
-                Учебное пособие
-            </a>
-            <a href="{{ url_for('engineer.tests') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.tests' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".15"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-                Тесты
-            </a>
-            <a href="{{ url_for('engineer.projects') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.projects' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="10" rx="1" opacity=".15"/><path d="M1 6h14v1H1zm4-3v1m6-1v1"/></svg>
-                Проекты
-            </a>
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Инженер</div>
+            <h1 class="page-title">
+                {{ current_user.full_name.split()[0] if current_user.full_name else 'Дашборд' }}
+            </h1>
         </div>
-        <div class="sidebar-section">
-            <span class="sidebar-label">Справочники</span>
-            <a href="{{ url_for('engineer.regulations') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.regulations' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v14H3z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h6v1H5zm0 3h4v1H5z"/></svg>
-                Нормативная база
-            </a>
-            <a href="{{ url_for('engineer.software') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.software' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="9" rx="1" opacity=".15"/><path d="M4 7l2 2-2 2m4 0h3"/></svg>
-                ПО
-            </a>
-            <a href="{{ url_for('engineer.equipment') }}"
-               class="sidebar-link {% if request.endpoint == 'engineer.equipment' %}active{% endif %}">
-                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3" opacity=".15"/><path d="M8 1v2m0 10v2M1 8h2m10 0h2M3.5 3.5l1.5 1.5m6 6l1.5 1.5M3.5 12.5l1.5-1.5m6-6l1.5-1.5"/></svg>
-                Оборудование
-            </a>
-        </div>
-    </nav>
-
-    <div class="sidebar-content">
-        <div class="page-header">
-            <div>
-                <div class="page-tag">Рабочее пространство</div>
-                <h1 class="page-title">Дашборд инженера</h1>
-            </div>
-            <div class="page-meta">
-                <div class="page-date" id="js-date"></div>
-                <div class="online-badge"><span class="status-dot"></span> Онлайн</div>
-            </div>
-        </div>
-
-        <div class="metrics-grid">
-            <div class="metric-card metric-card--accent">
-                <div class="metric-label">Назначенных объектов</div>
-                <div class="metric-value">—</div>
-                <div class="metric-sub">В работе</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Открытых заказов</div>
-                <div class="metric-value">{{ stats.open_orders }}</div>
-                <div class="metric-sub">Со склада</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Всего заказов</div>
-                <div class="metric-value">{{ stats.total_orders }}</div>
-                <div class="metric-sub">За всё время</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Тестов пройдено</div>
-                <div class="metric-value">—</div>
-                <div class="metric-sub">Прогресс</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">
-                <div class="section-title">Мои заказы со склада</div>
-                <a href="{{ url_for('warehouse.orders') }}" class="section-link">Все заказы →</a>
-            </div>
-            {% if my_orders %}
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Номер</th>
-                            <th>Объект</th>
-                            <th>Статус</th>
-                            <th>Дата</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in my_orders %}
-                        <tr>
-                            <td class="td-number">{{ order.number }}</td>
-                            <td>{{ order.object_name }}</td>
-                            <td>
-                                <span class="badge badge--{{ order.status }}">
-                                    {{ order.status_label }}
-                                </span>
-                            </td>
-                            <td class="td-date">{{ order.created_at.strftime('%d.%m.%Y') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📋</div>
-                <div class="empty-text">Заказов пока нет</div>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="section">
-            <div class="section-title" style="margin-bottom:14px">Быстрые действия</div>
-            <div class="quick-actions">
-                <a href="{{ url_for('engineer.tests') }}" class="quick-btn">
-                    <span class="quick-icon">✅</span><span>Тесты</span>
-                </a>
-                <a href="{{ url_for('engineer.handbook') }}" class="quick-btn">
-                    <span class="quick-icon">📖</span><span>Пособие</span>
-                </a>
-                <a href="{{ url_for('engineer.regulations') }}" class="quick-btn">
-                    <span class="quick-icon">📄</span><span>Нормативы</span>
-                </a>
-                <a href="{{ url_for('engineer.equipment') }}" class="quick-btn">
-                    <span class="quick-icon">⚙️</span><span>Оборудование</span>
-                </a>
-            </div>
+        <div class="header-actions">
+            <a href="{{ url_for('engineer.projects') }}" class="btn btn--ghost btn--sm">Все проекты</a>
+            <a href="{{ url_for('service.dashboard') }}" class="btn btn--ghost btn--sm">План-задания</a>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-const d = new Date();
-document.getElementById('js-date').textContent =
-    d.toLocaleDateString('ru-RU', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-</script>
+    {# Метрики #}
+    <div class="eng-metrics">
+        <div class="metric-card metric-card--eng">
+            <div class="metric-label">Проектов активных</div>
+            <div class="metric-value">{{ stats.active_projects }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Заказов открытых</div>
+            <div class="metric-value">{{ stats.open_orders }}</div>
+            <div class="metric-sub">из {{ stats.total_orders }} всего</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">План-заданий</div>
+            <div class="metric-value">{{ stats.my_tasks }}</div>
+            <div class="metric-sub">активных</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Срочных</div>
+            <div class="metric-value {% if stats.urgent_tasks > 0 %}metric-value--warn{% endif %}">
+                {{ stats.urgent_tasks }}
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Заказов всего</div>
+            <div class="metric-value">{{ stats.total_orders }}</div>
+        </div>
+    </div>
+
+    {# Верхняя сетка: проекты + план-задания #}
+    <div class="dash-grid">
+
+        {# ── МОИ ПРОЕКТЫ ── #}
+        <div class="dash-block">
+            <div class="dash-block-header">
+                <div class="dash-block-title">
+                    📋 Мои проекты
+                    <span style="background:rgba(90,140,200,.12);color:#5a8cc8;
+                                 font-size:9px;padding:1px 7px;border-radius:10px">
+                        {{ my_projects|length }}
+                    </span>
+                </div>
+                <a href="{{ url_for('engineer.projects') }}" class="action-link">все →</a>
+            </div>
+            <div class="dash-block-body">
+                {% if my_projects %}
+                {% for proj in my_projects %}
+                <a href="{{ url_for('engineer.project_detail', project_id=proj.id) }}"
+                   class="dash-row" style="text-decoration:none">
+                    <div class="dash-row-main">
+                        <div class="dash-row-title">{{ proj.name }}</div>
+                        <div class="dash-row-sub">
+                            {{ proj.status_label }}
+                            {% if proj.client %} · {{ proj.client }}{% endif %}
+                        </div>
+                        <div class="proj-bar">
+                            <div class="proj-bar-fill" style="width:{{ proj.checklist_progress }}%"></div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                        <div style="font-size:12px;color:var(--gold)">
+                            {{ proj.checklist_progress }}%
+                        </div>
+                        <div style="font-size:10px;color:var(--text-muted)">
+                            {{ proj.checklist_done }}/{{ proj.checklist|length }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="dash-empty">Проектов нет</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── ПЛАН-ЗАДАНИЯ ── #}
+        <div class="dash-block">
+            <div class="dash-block-header">
+                <div class="dash-block-title">
+                    🛠 Мои план-задания
+                    {% if stats.urgent_tasks > 0 %}
+                    <span style="background:rgba(224,96,96,.15);color:#e06060;
+                                 font-size:9px;padding:1px 7px;border-radius:10px">
+                        {{ stats.urgent_tasks }} срочных
+                    </span>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('service.dashboard') }}" class="action-link">все →</a>
+            </div>
+            <div class="dash-block-body">
+                {% if my_tasks %}
+                {% for task in my_tasks %}
+                <a href="{{ url_for('service.task_detail', task_id=task.id) }}"
+                   class="dash-row" style="text-decoration:none">
+                    {% if task.is_urgent %}
+                    <div style="width:3px;height:36px;background:#e06060;
+                                border-radius:2px;flex-shrink:0"></div>
+                    {% endif %}
+                    <div class="dash-row-main">
+                        <div class="dash-row-title">{{ task.object_name }}</div>
+                        <div class="dash-row-sub">
+                            {{ task.work_type_label }}
+                            {% if task.planned_date %}
+                            · 📅 {{ task.planned_date.strftime('%d.%m') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="badge st-{{ task.status }}" style="font-size:9px">
+                        {{ task.status_label }}
+                    </span>
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="dash-empty">Активных заданий нет</div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    {# Нижняя сетка: заказы склада + мои материалы #}
+    <div class="dash-grid">
+
+        {# ── ЗАКАЗЫ СО СКЛАДА ── #}
+        <div class="dash-block">
+            <div class="dash-block-header">
+                <div class="dash-block-title">📦 Заказы со склада</div>
+                <a href="{{ url_for('warehouse.orders') }}" class="action-link">все →</a>
+            </div>
+            <div class="dash-block-body">
+                {% if my_warehouse_orders %}
+                {% for order in my_warehouse_orders %}
+                <div class="dash-row">
+                    <div class="dash-row-main">
+                        <div class="dash-row-title">{{ order.object_name }}</div>
+                        <div class="dash-row-sub">
+                            {{ order.number }} · {{ order.total_items }} позиций
+                        </div>
+                    </div>
+                    <span class="badge badge--{{ order.status }}" style="font-size:9px">
+                        {{ order.status_label }}
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="dash-empty">Открытых заказов нет</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── МОИ МАТЕРИАЛЫ (часто заказываемые) ── #}
+        <div class="dash-block">
+            <div class="dash-block-header">
+                <div class="dash-block-title">🔩 Мои материалы</div>
+                <a href="{{ url_for('warehouse.index') }}" class="action-link">склад →</a>
+            </div>
+            <div class="dash-block-body">
+                {% if my_items %}
+                {% for item in my_items %}
+                <div class="dash-row">
+                    <div class="dash-row-main">
+                        <div class="dash-row-title">{{ item.name }}</div>
+                        <div class="dash-row-sub">
+                            {{ item.article or '—' }} · {{ item.unit }}
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                        <div class="{% if item.is_low_stock %}td-qty--low{% else %}td-qty{% endif %}"
+                             style="font-size:14px;font-weight:500;
+                                    color:{% if item.is_low_stock %}#e06060{% elif item.available_qty > 0 %}#4caf6b{% else %}var(--text-muted){% endif %}">
+                            {{ item.available_qty | int }}
+                        </div>
+                        <div style="font-size:10px;color:var(--text-muted)">доступно</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="dash-empty">
+                    Нет данных по материалам.<br>
+                    <a href="{{ url_for('warehouse.index') }}" style="color:var(--gold)">
+                        Открыть склад →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
 {% endblock %}

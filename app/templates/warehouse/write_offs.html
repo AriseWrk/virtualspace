@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Списания — Склад{% endblock %}
+
+{% block extra_css %}
+<style>
+.wh-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap}
+.wh-tab{padding:11px 20px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+.wh-tab:hover{color:var(--text-secondary)}
+.wh-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Склад</div>
+            <h1 class="page-title">Списания</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('warehouse.create_write_off') }}" class="btn btn--primary">+ Списание</a>
+        </div>
+    </div>
+
+    <div class="wh-tabs">
+        <a href="{{ url_for('warehouse.index') }}"      class="wh-tab">Остатки</a>
+        <a href="{{ url_for('warehouse.receipts') }}"   class="wh-tab">Приходования</a>
+        <a href="{{ url_for('warehouse.write_offs') }}" class="wh-tab active">Списания</a>
+        <a href="{{ url_for('warehouse.movements') }}"  class="wh-tab">Перемещения</a>
+        <a href="{{ url_for('warehouse.inventory') }}"  class="wh-tab">Инвентаризации</a>
+        <a href="{{ url_for('warehouse.orders') }}"     class="wh-tab">Заказы</a>
+    </div>
+
+    <div class="filter-bar">
+        {% for val, label in [('','Все'),('draft','Черновики'),('confirmed','Проведены'),('cancelled','Отменены')] %}
+        <a href="{{ url_for('warehouse.write_offs', status=val) }}"
+           class="filter-tab {% if status_filter == val %}filter-tab--active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    {% if docs %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Номер</th><th>Причина</th><th>Позиций</th>
+                    <th style="text-align:right">Сумма</th>
+                    <th>Статус</th><th>Дата</th><th>Создал</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in docs %}
+                <tr>
+                    <td class="td-number">{{ doc.number }}</td>
+                    <td class="td-name">{{ doc.reason_label }}</td>
+                    <td class="td-muted">{{ doc.total_items }}</td>
+                    <td style="text-align:right;color:var(--text-secondary);font-size:13px">
+                        {{ '{:,.2f}'.format(doc.total_sum).replace(',', ' ') }} ₽
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if doc.status == 'confirmed' %}badge--in_progress
+                            {% elif doc.status == 'cancelled' %}badge--cancelled
+                            {% else %}badge--new{% endif %}">
+                            {{ doc.status_label }}
+                        </span>
+                    </td>
+                    <td class="td-date">{{ doc.created_at.strftime('%d.%m.%Y') }}</td>
+                    <td class="td-muted" style="font-size:11px">
+                        {{ doc.created_by.full_name if doc.created_by else '—' }}
+                    </td>
+                    <td class="td-actions" style="white-space:nowrap">
+                        {% if doc.status == 'draft' %}
+                        <form method="POST"
+                              action="{{ url_for('warehouse.confirm_write_off', doc_id=doc.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Провести списание {{ doc.number }}?')">
+                            <button type="submit" class="action-link" style="color:#4caf6b">Провести</button>
+                        </form>
+                        <form method="POST"
+                              action="{{ url_for('warehouse.cancel_write_off', doc_id=doc.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Отменить?')">
+                            <button type="submit" class="action-link action-link--danger">Отменить</button>
+                        </form>
+                        {% endif %}
+                        <a href="{{ url_for('warehouse.export_write_off', doc_id=doc.id) }}"
+                           class="action-link" title="Скачать Excel">↓ Excel</a>
+                        <a href="{{ url_for('warehouse.print_write_off', doc_id=doc.id) }}"
+                           class="action-link" target="_blank" title="Печать">🖨</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">Документов: {{ docs|length }}</div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🗑</div>
+        <div class="empty-text">Списаний нет</div>
+        <a href="{{ url_for('warehouse.create_write_off') }}" class="btn btn--primary" style="margin-top:16px">
+            Создать первое списание
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

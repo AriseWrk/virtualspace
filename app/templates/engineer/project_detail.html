@@ -1,596 +1,700 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} — Проект{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 <style>
-.theme-engineer .sidebar-link.active{background:rgba(185,140,80,.06);color:#b98c50;border-left-color:#b98c50}
-.theme-engineer .page-tag{color:#b98c50}
-.theme-engineer .metric-card--accent{border-top-color:#b98c50}
+/* ── Статус-бейджи проекта ── */
+.status-new         { background:rgba(255,255,255,.06);  color:var(--text-muted) }
+.status-design      { background:rgba(122,110,170,.15);  color:#9d90cc }
+.status-planning    { background:rgba(185,140,80,.12);   color:var(--gold) }
+.status-in_progress { background:rgba(45,106,58,.12);    color:#4caf6b }
+.status-pnr         { background:rgba(90,140,200,.12);   color:#5a8cc8 }
+.status-completed   { background:rgba(255,255,255,.08);  color:var(--text-secondary) }
+.status-on_hold     { background:rgba(138,48,48,.12);    color:#e06060 }
 
-/* Табы внутри страницы */
-.inner-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;flex-wrap:wrap}
-.inner-tab{padding:10px 20px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#4a4845;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
-.inner-tab:hover{color:#8a8680}
-.inner-tab.active{color:#b98c50;border-bottom-color:#b98c50}
+/* ── Блок-раздел ── */
+.proj-section {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.proj-section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none;
+    transition: background .15s;
+}
+.proj-section-header:hover { background: var(--bg-hover); }
+.proj-section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 400;
+}
+.proj-section-icon { font-size: 14px; }
+.proj-section-meta { font-size: 11px; color: var(--text-muted); }
+.proj-section-chevron {
+    font-size: 10px; color: var(--text-muted);
+    transition: transform .2s;
+}
+.proj-section-chevron.open { transform: rotate(180deg); }
+.proj-section-body { padding: 20px; }
+.proj-section-body.collapsed { display: none; }
 
-.tab-section{display:none}
-.tab-section.active{display:block}
+/* ── Роль-метка ── */
+.role-badge {
+    font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 2px; font-weight: 500;
+}
+.role-engineer  { background:rgba(45,106,58,.15);   color:#4caf6b }
+.role-designer  { background:rgba(122,110,170,.15); color:#9d90cc }
+.role-office    { background:rgba(185,140,80,.12);  color:var(--gold) }
+.role-all       { background:rgba(255,255,255,.05); color:var(--text-muted) }
 
-/* Прогресс */
-.progress-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;background:#b98c50;border-radius:2px}
-.progress-fill--done{background:#2d6a3a}
+/* ── Прогресс-бар ── */
+.progress-bar-wrap {
+    background: var(--bg-hover); border-radius: 2px;
+    height: 4px; margin-top: 8px; overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%; background: var(--gold); border-radius: 2px;
+    transition: width .4s;
+}
 
-/* Чеклист */
-.checklist-category{margin-bottom:20px}
-.checklist-cat-title{font-size:9px;letter-spacing:3px;color:#3a3835;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.04)}
-.check-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)}
-.check-item:last-child{border:none}
-.check-item--done .check-text{color:#3a3835;text-decoration:line-through}
-.check-btn{width:18px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,.15);background:none;cursor:pointer;flex-shrink:0;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:10px}
-.check-btn--done{background:#2d6a3a;border-color:#2d6a3a;color:#fff}
-.check-text{font-size:13px;color:#c0bab2;flex:1}
-.check-meta{font-size:10px;color:#2a2825;white-space:nowrap}
+/* ── Чеклист ── */
+.checklist-group { margin-bottom: 18px; }
+.checklist-group-title {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px;
+}
+.checklist-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.checklist-item:last-child { border-bottom: none; }
+.checklist-cb { accent-color: var(--gold); width: 15px; height: 15px; cursor: pointer; }
+.checklist-label { flex: 1; font-size: 13px; color: var(--text-secondary); }
+.checklist-label.done { text-decoration: line-through; color: var(--text-muted); }
+.checklist-meta { font-size: 10px; color: var(--text-muted); }
 
-/* Форма добавления */
-.add-form{background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:16px 18px;margin-top:16px}
-.add-form-title{font-size:9px;letter-spacing:3px;color:#3a3835;text-transform:uppercase;margin-bottom:12px}
-.add-row{display:flex;gap:10px;flex-wrap:wrap}
+/* ── Документы ── */
+.doc-blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.doc-block {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+}
+.doc-block-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+}
+.doc-block-icon { font-size: 18px; }
+.doc-block-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
+.doc-file-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.03);
+    font-size: 12px;
+}
+.doc-file-row:last-of-type { border-bottom: none; }
+.doc-file-name { flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-file-size { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.doc-file-ver  { font-size: 10px; color: var(--gold); white-space: nowrap; }
+.doc-upload-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 
-/* Кабельный журнал */
-.cable-status--planned{color:#4a4845}
-.cable-status--laid{color:#b98c50}
-.cable-status--connected{color:#5a8cc8}
-.cable-status--tested{color:#4caf6b}
+/* ── Заказы офиса ── */
+.order-card {
+    background: var(--bg-base); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 14px;
+}
+.order-number { font-family: var(--font-display); color: var(--gold); font-size: 16px; }
+.order-info   { flex: 1; font-size: 12px; color: var(--text-muted); }
+.order-info strong { color: var(--text-secondary); }
 
-/* IP таблица */
-.ip-active{color:#4caf6b}
-.ip-inactive{color:#e06060}
-.ip-reserved{color:#b98c50}
-.pass-hidden{filter:blur(4px);transition:filter .2s;cursor:pointer;font-family:monospace;font-size:11px}
-.pass-hidden:hover{filter:none}
+/* ── Участники ── */
+.participants {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.participant {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-secondary);
+}
+.participant-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(185,140,80,.15); border: 1px solid rgba(185,140,80,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--gold); font-weight: 500; flex-shrink: 0;
+}
+.participant-role { font-size: 10px; color: var(--text-muted); }
 
-/* Фото */
-.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-.photo-item{position:relative;border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.07);aspect-ratio:4/3;background:#0a0a0c}
-.photo-item img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-.photo-item:hover .photo-overlay{opacity:1}
-.photo-desc{font-size:11px;color:#f0ece4;text-align:center;padding:0 8px}
-.photo-del{font-size:10px;color:#e06060;cursor:pointer;border:1px solid rgba(138,48,48,.4);padding:3px 8px;border-radius:2px;background:none}
-
-/* Заметки */
-.note-item{background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:14px 16px;margin-bottom:8px}
-.note-item--problem{border-left:2px solid #e06060}
-.note-item--task{border-left:2px solid #b98c50}
-.note-item--info{border-left:2px solid #5a8cc8}
-.note-item--note{border-left:2px solid #3a3835}
-.note-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.note-type{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#4a4845}
-.note-meta{font-size:10px;color:#2a2825}
-.note-text{font-size:13px;color:#8a8680;line-height:1.6}
-
-/* Объект шапка */
-.project-header-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:20px 24px;margin-bottom:24px}
-.proj-title{font-size:22px;color:#f0ece4;font-weight:300;margin-bottom:6px}
-.proj-meta-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:10px}
-.proj-meta-item{font-size:11px;color:#4a4845}
-.proj-meta-item span{color:#8a8680}
+/* ── Inline форма добавления кабеля / IP ── */
+.inline-add-form {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px; margin-top: 14px;
+    display: none;
+}
+.inline-add-form.show { display: block; }
+.form-row-compact { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.form-group-xs { flex: 1; min-width: 100px; }
+.form-group-xs .form-label { font-size: 9px; letter-spacing: 2px; }
+.form-group-xs .form-input,
+.form-group-xs .form-select { padding: 7px 10px; font-size: 12px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-with-sidebar theme-engineer">
-    {% include "engineer/_sidebar.html" %}
-    <div class="sidebar-content">
+<div class="page-wrapper">
 
-        {# ===== ШАПКА ОБЪЕКТА ===== #}
-        <div class="project-header-card">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-                <div style="flex:1">
-                    <div class="page-tag">Объект</div>
-                    <div class="proj-title">{{ project.name }}</div>
-                    {% if project.client %}
-                    <div style="font-size:12px;color:#4a4845">{{ project.client }}</div>
-                    {% endif %}
-                    <div class="proj-meta-row">
-                        {% if project.address %}
-                        <div class="proj-meta-item">📍 <span>{{ project.address }}</span></div>
-                        {% endif %}
-                        <div class="proj-meta-item">👷 <span>{{ project.engineer.full_name }}</span></div>
-                        <div class="proj-meta-item">📅 <span>{{ project.created_at.strftime('%d.%m.%Y') }}</span></div>
-                    </div>
-                </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
-                    <span class="badge badge--{{ project.status }}" style="font-size:10px;padding:5px 12px">
-                        {{ project.status_label }}
-                    </span>
-                    <div style="display:flex;gap:8px">
-                        <a href="{{ url_for('engineer.export_project', project_id=project.id) }}"
-                           class="btn btn--ghost btn--sm">↓ Excel</a>
-                        <a href="{{ url_for('engineer.edit_project', project_id=project.id) }}"
-                           class="btn btn--ghost btn--sm">Редактировать</a>
-                    </div>
-                </div>
+    {# ── ШАПКА ── #}
+    <div class="page-header">
+        <div>
+            <div class="page-tag">
+                <a href="{{ url_for('engineer.projects') }}" style="color:var(--gold)">Проекты</a>
+                &nbsp;/&nbsp; {{ project.status_label }}
             </div>
-
-            {# Прогресс чеклиста #}
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.05)">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:10px;letter-spacing:2px;color:#3a3835;text-transform:uppercase">Прогресс чеклиста</span>
-                    <span style="font-size:12px;color:#b98c50">{{ project.checklist_done }}/{{ project.checklist|length }} · {{ project.checklist_progress }}%</span>
-                </div>
-                <div class="progress-bar" style="height:5px">
-                    <div class="progress-fill {% if project.checklist_progress == 100 %}progress-fill--done{% endif %}"
-                         style="width:{{ project.checklist_progress }}%"></div>
-                </div>
-            </div>
-
-            {% if project.description %}
-            <div style="margin-top:14px;font-size:12px;color:#4a4845;line-height:1.7;padding-top:12px;border-top:1px solid rgba(255,255,255,.04)">
-                {{ project.description }}
+            <h1 class="page-title">{{ project.name }}</h1>
+            {% if project.client %}
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                {{ project.client }}{% if project.address %} · {{ project.address }}{% endif %}
             </div>
             {% endif %}
         </div>
-
-        {# ===== ВНУТРЕННИЕ ТАБЫ ===== #}
-        <div class="inner-tabs">
-            <div class="inner-tab active" onclick="showTab('checklist')">✅ Чеклист</div>
-            <div class="inner-tab" onclick="showTab('cables')">🔌 Кабели</div>
-            <div class="inner-tab" onclick="showTab('iptable')">📡 IP-таблица</div>
-            <div class="inner-tab" onclick="showTab('photos')">📷 Фото</div>
-            <div class="inner-tab" onclick="showTab('notes')">📝 Заметки</div>
-            <div class="inner-tab" onclick="showTab('orders')">📦 Заказы</div>
+        <div class="header-actions">
+            <span class="badge status-{{ project.status }}">{{ project.status_label }}</span>
+            {% if can_edit_engineer or can_edit_office %}
+            <a href="{{ url_for('engineer.edit_project', project_id=project.id) }}"
+               class="btn btn--ghost btn--sm">Редактировать</a>
+            {% endif %}
+            <a href="{{ url_for('engineer.export_project', project_id=project.id) }}"
+               class="btn btn--ghost btn--sm">↓ Excel</a>
         </div>
+    </div>
 
-        {# ========== ЧЕКЛИСТ ========== #}
-        <div id="tab-checklist" class="tab-section active">
-            {% if checklist_by_category %}
-                {% for category, items in checklist_by_category.items() %}
-                <div class="checklist-category">
-                    <div class="checklist-cat-title">{{ category }}</div>
-                    {% for item in items %}
-                    <div class="check-item {% if item.is_done %}check-item--done{% endif %}">
-                        <form method="POST"
-                              action="{{ url_for('engineer.toggle_checklist', project_id=project.id, item_id=item.id) }}"
-                              style="margin:0">
-                            <button type="submit" class="check-btn {% if item.is_done %}check-btn--done{% endif %}">
-                                {% if item.is_done %}✓{% endif %}
-                            </button>
-                        </form>
-                        <span class="check-text">{{ item.title }}</span>
-                        {% if item.done_at %}
-                        <span class="check-meta">
-                            {{ item.done_by.full_name if item.done_by else '' }} · {{ item.done_at.strftime('%d.%m') }}
+    {# ── УЧАСТНИКИ ── #}
+    <div class="participants">
+        {% if project.engineer %}
+        <div class="participant">
+            <div class="participant-avatar">{{ project.engineer.full_name[:2].upper() }}</div>
+            <div>
+                <div>{{ project.engineer.full_name }}</div>
+                <div class="participant-role">Инженер</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if project.designer %}
+        <div class="participant">
+            <div class="participant-avatar" style="background:rgba(122,110,170,.15);border-color:rgba(122,110,170,.3);color:#9d90cc">
+                {{ project.designer.full_name[:2].upper() }}
+            </div>
+            <div>
+                <div>{{ project.designer.full_name }}</div>
+                <div class="participant-role">Проектировщик</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if project.created_by %}
+        <div class="participant">
+            <div class="participant-avatar" style="background:rgba(185,140,80,.08);border-color:rgba(185,140,80,.15);color:var(--text-muted)">
+                {{ project.created_by.full_name[:2].upper() }}
+            </div>
+            <div>
+                <div>{{ project.created_by.full_name }}</div>
+                <div class="participant-role">Создал проект</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 1 — ЧЕКЛИСТ (карточка → отдельная страница)
+    ══════════════════════════════════════════════════════════════ #}
+    <a href="{{ url_for('engineer.project_checklist', project_id=project.id) }}"
+       class="proj-section" style="display:block;text-decoration:none;color:inherit">
+        <div class="proj-section-header">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">✅</span>
+                Чеклист монтажа
+                <span class="role-badge role-engineer">Инженер</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px">
+                <span class="proj-section-meta">
+                    {{ project.checklist_done }} / {{ project.checklist|length }} выполнено
+                </span>
+                <div style="width:140px">
+                    <div class="progress-bar-wrap" style="margin-top:0">
+                        <div class="progress-bar-fill" style="width:{{ project.checklist_progress }}%"></div>
+                    </div>
+                </div>
+                <span style="font-size:12px;color:var(--gold)">{{ project.checklist_progress }}% →</span>
+            </div>
+        </div>
+    </a>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 2 — ДОКУМЕНТАЦИЯ (проектировщик)
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="proj-section" id="docs">
+        <div class="proj-section-header" onclick="toggleSection('sec-docs', this)">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">📁</span>
+                Документация проекта
+                <span class="role-badge role-designer">Проектировщик</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <span class="proj-section-meta">{{ project.documents|length }} файлов</span>
+                <span class="proj-section-chevron open">▼</span>
+            </div>
+        </div>
+        <div class="proj-section-body" id="sec-docs">
+
+            <div class="doc-blocks">
+                {% for dt, dt_label in doc_types.items() %}
+                <div class="doc-block">
+                    <div class="doc-block-header">
+                        <span class="doc-block-icon">{{ doc_icons[dt] }}</span>
+                        <span class="doc-block-title">{{ dt_label }}</span>
+                    </div>
+
+                    {% for doc in docs_by_type[dt] %}
+                    <div class="doc-file-row">
+                        <span class="doc-file-name" title="{{ doc.original_name }}">
+                            <a href="{{ url_for('engineer.download_document', project_id=project.id, doc_id=doc.id) }}"
+                               style="color:var(--text-secondary)">{{ doc.title }}</a>
                         </span>
+                        {% if doc.version %}<span class="doc-file-ver">rev.{{ doc.version }}</span>{% endif %}
+                        <span class="doc-file-size">{{ doc.file_size_human }}</span>
+                        {% if can_edit_designer %}
+                        <form method="POST"
+                              action="{{ url_for('engineer.delete_document', project_id=project.id, doc_id=doc.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Удалить «{{ doc.title }}»?')">
+                            <button type="submit" class="action-link action-link--danger" style="font-size:10px">✕</button>
+                        </form>
                         {% endif %}
                     </div>
+                    {% else %}
+                    <div style="font-size:11px;color:var(--text-muted);padding:4px 0">Нет файлов</div>
                     {% endfor %}
+
+                    {% if can_edit_designer %}
+                    <div class="doc-upload-form">
+                        <form method="POST"
+                              action="{{ url_for('engineer.upload_document', project_id=project.id) }}"
+                              enctype="multipart/form-data">
+                            <input type="hidden" name="doc_type" value="{{ dt }}">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+                                <div style="flex:2;min-width:130px">
+                                    <input type="text" name="title" class="form-input"
+                                           placeholder="Название документа…"
+                                           style="padding:6px 10px;font-size:11px">
+                                </div>
+                                <div style="flex:1;min-width:60px">
+                                    <input type="text" name="version" class="form-input"
+                                           placeholder="rev.1"
+                                           style="padding:6px 10px;font-size:11px">
+                                </div>
+                                <div>
+                                    <label class="btn btn--ghost btn--sm" style="cursor:pointer;position:relative">
+                                        Файл
+                                        <input type="file" name="file" required style="position:absolute;opacity:0;width:0;height:0">
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn--primary btn--sm">↑</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 3 — ЗАКАЗЫ СО СКЛАДА (офис)
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="proj-section" id="orders">
+        <div class="proj-section-header" onclick="toggleSection('sec-orders', this)">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">📦</span>
+                Заказы со склада
+                <span class="role-badge role-office">Офис</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <span class="proj-section-meta">{{ related_orders|length }} заказов</span>
+                <span class="proj-section-chevron open">▼</span>
+            </div>
+        </div>
+        <div class="proj-section-body" id="sec-orders">
+
+            {% if related_orders %}
+            {% for order in related_orders %}
+            <div class="order-card">
+                <span class="order-number">{{ order.number }}</span>
+                <div class="order-info">
+                    <strong>{{ order.object_name }}</strong><br>
+                    {{ order.total_items }} позиций
+                    {% if order.assignee %} · {{ order.assignee.full_name }}{% endif %}
+                </div>
+                <span class="badge badge--{{ order.status }}">{{ order.status_label }}</span>
+                <span class="td-date" style="font-size:11px;color:var(--text-muted)">
+                    {{ order.created_at.strftime('%d.%m.%Y') }}
+                </span>
+            </div>
+            {% endfor %}
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">✅</div>
-                <div class="empty-text">Чеклист пуст</div>
+            <div style="font-size:12px;color:var(--text-muted);padding:8px 0">
+                Заказов по этому проекту ещё нет.
             </div>
             {% endif %}
 
-            <div class="add-form">
-                <div class="add-form-title">Добавить пункт</div>
+            {% if can_edit_office %}
+            <div style="margin-top:16px">
+                <button class="btn btn--primary btn--sm" onclick="toggleForm('create-order-form')">
+                    + Создать заказ на склад
+                </button>
                 <form method="POST"
-                      action="{{ url_for('engineer.add_checklist_item', project_id=project.id) }}">
-                    <div class="add-row">
-                        <input type="text" name="title" class="form-input" required
-                               placeholder="Название пункта..." style="flex:3">
-                        <select name="category" class="form-select" style="flex:1;min-width:160px">
-                            <option value="preparation">Подготовка</option>
-                            <option value="cabling">Кабельные работы</option>
-                            <option value="installation" selected>Монтаж</option>
-                            <option value="commissioning">Пуско-наладка</option>
-                            <option value="documentation">Документация</option>
-                            <option value="handover">Сдача объекта</option>
-                        </select>
-                        <button type="submit" class="btn btn--primary">Добавить</button>
+                      action="{{ url_for('engineer.create_project_order', project_id=project.id) }}"
+                      class="inline-add-form" id="create-order-form" style="margin-top:12px">
+
+                    <div style="font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">
+                        Новый заказ — {{ project.name }}
+                    </div>
+
+                    <div id="order-items-list">
+                        <div class="form-row-compact order-item-row" style="margin-bottom:8px">
+                            <div class="form-group-xs" style="flex:3">
+                                <label class="form-label">Позиция</label>
+                                <select name="item_id[]" class="form-select order-item-sel" required>
+                                    <option value="">— Выберите —</option>
+                                    {% for item in all_warehouse_items %}
+                                    <option value="{{ item.id }}" data-unit="{{ item.unit }}">
+                                        {{ item.name }} ({{ item.available_qty }} {{ item.unit }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group-xs" style="max-width:100px">
+                                <label class="form-label">Кол-во</label>
+                                <input type="number" name="quantity[]" class="form-input"
+                                       step="0.001" min="0.001" placeholder="0" required
+                                       style="padding:7px 10px;font-size:12px">
+                            </div>
+                            <span class="order-unit" style="font-size:11px;color:var(--text-muted);padding-bottom:2px">шт</span>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <button type="button" class="btn btn--ghost btn--sm" onclick="addOrderRow()">
+                            + Позиция
+                        </button>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label class="form-label">Примечание</label>
+                        <input type="text" name="notes" class="form-input"
+                               placeholder="Срочно, для монтажа СКС…"
+                               style="padding:7px 12px;font-size:12px">
+                    </div>
+
+                    <div style="display:flex;gap:8px">
+                        <button type="submit" class="btn btn--primary btn--sm">
+                            Отправить на склад
+                        </button>
+                        <button type="button" class="btn btn--ghost btn--sm"
+                                onclick="toggleForm('create-order-form')">
+                            Отмена
+                        </button>
                     </div>
                 </form>
             </div>
-        </div>
+            {% endif %}
 
-        {# ========== КАБЕЛЬНЫЙ ЖУРНАЛ ========== #}
-        <div id="tab-cables" class="tab-section">
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 4 — КАБЕЛЬНЫЙ ЖУРНАЛ (инженер)
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="proj-section" id="cables">
+        <div class="proj-section-header" onclick="toggleSection('sec-cables', this)">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">🔌</span>
+                Кабельный журнал
+                <span class="role-badge role-engineer">Инженер</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <span class="proj-section-meta">{{ project.cable_journal|length }} кабелей</span>
+                <span class="proj-section-chevron">▼</span>
+            </div>
+        </div>
+        <div class="proj-section-body collapsed" id="sec-cables">
+
             {% if project.cable_journal %}
-            <div class="table-wrap">
+            <div class="table-wrap" style="margin-bottom:14px">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>№</th>
-                            <th>Тип кабеля</th>
-                            <th>От</th>
-                            <th>До</th>
-                            <th>Длина</th>
-                            <th>Сечение</th>
-                            <th>Статус</th>
-                            <th></th>
+                            <th>№</th><th>Тип</th><th>От</th><th>До</th>
+                            <th>Длина</th><th>Сечение</th><th>Статус</th>
+                            {% if can_edit_engineer %}<th></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in project.cable_journal %}
                         <tr>
                             <td class="td-number">{{ c.number }}</td>
-                            <td style="color:#c0bab2">{{ c.cable_type }}</td>
+                            <td class="td-name">{{ c.cable_type }}</td>
                             <td class="td-muted">{{ c.from_point }}</td>
                             <td class="td-muted">{{ c.to_point }}</td>
-                            <td class="td-muted">{{ c.length or '—' }} {% if c.length %}м{% endif %}</td>
+                            <td class="td-muted">{{ c.length or '—' }}</td>
                             <td class="td-muted">{{ c.section or '—' }}</td>
                             <td>
+                                {% if can_edit_engineer %}
                                 <form method="POST"
                                       action="{{ url_for('engineer.update_cable_status', project_id=project.id, cable_id=c.id) }}"
                                       style="display:inline">
                                     <select name="status" class="filter-select"
-                                            style="padding:3px 8px;font-size:10px"
+                                            style="padding:3px 6px;font-size:11px"
                                             onchange="this.form.submit()">
-                                        {% for val, lbl in [('planned','Запланирован'),('laid','Проложен'),('connected','Подключён'),('tested','Протестирован')] %}
+                                        {% for val, lbl in {'planned':'Запланирован','laid':'Проложен','connected':'Подключён','tested':'Протестирован'}.items() %}
                                         <option value="{{ val }}" {% if c.status == val %}selected{% endif %}>{{ lbl }}</option>
                                         {% endfor %}
                                     </select>
                                 </form>
+                                {% else %}
+                                <span class="badge badge--{{ 'in_progress' if c.status == 'laid' else 'new' }}">
+                                    {{ c.status_label }}
+                                </span>
+                                {% endif %}
                             </td>
-                            <td class="td-actions">
+                            {% if can_edit_engineer %}
+                            <td>
                                 <form method="POST"
                                       action="{{ url_for('engineer.delete_cable', project_id=project.id, cable_id=c.id) }}"
-                                      style="display:inline"
                                       onsubmit="return confirm('Удалить запись?')">
-                                    <button type="submit" class="action-link action-link--danger">Удал.</button>
+                                    <button type="submit" class="action-link action-link--danger">✕</button>
                                 </form>
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="table-footer">Записей: {{ project.cable_journal|length }}</div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🔌</div>
-                <div class="empty-text">Кабельный журнал пуст</div>
-            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Кабелей нет.</div>
             {% endif %}
 
-            <div class="add-form">
-                <div class="add-form-title">Добавить кабель</div>
-                <form method="POST" action="{{ url_for('engineer.add_cable', project_id=project.id) }}">
-                    <div class="add-row" style="margin-bottom:10px">
-                        <div class="form-group" style="min-width:100px">
-                            <label class="form-label">№ кабеля *</label>
-                            <input type="text" name="number" class="form-input" required placeholder="К-001">
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Тип кабеля *</label>
-                            <input type="text" name="cable_type" class="form-input" required
-                                   placeholder="UTP Cat5e, ВВГнг 3×2.5...">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Длина (м)</label>
-                            <input type="number" name="length" class="form-input" step="0.1" min="0" placeholder="25.5">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Сечение</label>
-                            <input type="text" name="section" class="form-input" placeholder="2.5">
-                        </div>
-                    </div>
-                    <div class="add-row">
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">От *</label>
-                            <input type="text" name="from_point" class="form-input" required placeholder="Щит ГРЩ">
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">До *</label>
-                            <input type="text" name="to_point" class="form-input" required placeholder="Камера №1, пом. 101">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Статус</label>
-                            <select name="status" class="form-select">
-                                <option value="planned">Запланирован</option>
-                                <option value="laid">Проложен</option>
-                                <option value="connected">Подключён</option>
-                                <option value="tested">Протестирован</option>
-                            </select>
-                        </div>
-                        <div style="display:flex;align-items:flex-end;padding-bottom:0">
-                            <button type="submit" class="btn btn--primary">Добавить</button>
-                        </div>
-                    </div>
-                </form>
+            {% if can_edit_engineer %}
+            <button class="btn btn--ghost btn--sm" onclick="toggleForm('add-cable-form')">+ Добавить кабель</button>
+            <form method="POST"
+                  action="{{ url_for('engineer.add_cable', project_id=project.id) }}"
+                  class="inline-add-form" id="add-cable-form">
+                <div class="form-row-compact">
+                    <div class="form-group-xs"><label class="form-label">№</label>
+                        <input type="text" name="number" class="form-input" required placeholder="К-001"></div>
+                    <div class="form-group-xs" style="flex:2"><label class="form-label">Тип кабеля</label>
+                        <input type="text" name="cable_type" class="form-input" required placeholder="ВВГнг 3×2.5"></div>
+                    <div class="form-group-xs" style="flex:2"><label class="form-label">От</label>
+                        <input type="text" name="from_point" class="form-input" required placeholder="ЩО-1"></div>
+                    <div class="form-group-xs" style="flex:2"><label class="form-label">До</label>
+                        <input type="text" name="to_point" class="form-input" required placeholder="Камера №3"></div>
+                    <div class="form-group-xs" style="max-width:80px"><label class="form-label">Длина, м</label>
+                        <input type="number" name="length" class="form-input" step="0.1" placeholder="25"></div>
+                    <div class="form-group-xs" style="max-width:80px"><label class="form-label">Сечение</label>
+                        <input type="text" name="section" class="form-input" placeholder="2.5"></div>
+                    <button type="submit" class="btn btn--primary btn--sm" style="margin-bottom:1px">Добавить</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 5 — IP-ТАБЛИЦА (инженер)
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="proj-section" id="iptable">
+        <div class="proj-section-header" onclick="toggleSection('sec-ip', this)">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">🖧</span>
+                IP-таблица устройств
+                <span class="role-badge role-engineer">Инженер</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <span class="proj-section-meta">{{ project.ip_table|length }} устройств</span>
+                <span class="proj-section-chevron">▼</span>
             </div>
         </div>
-
-        {# ========== IP ТАБЛИЦА ========== #}
-        <div id="tab-iptable" class="tab-section">
+        <div class="proj-section-body collapsed" id="sec-ip">
             {% if project.ip_table %}
-            <div class="table-wrap">
+            <div class="table-wrap" style="margin-bottom:14px">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>IP-адрес</th>
-                            <th>Устройство</th>
-                            <th>Модель</th>
-                            <th>Расположение</th>
-                            <th>MAC</th>
-                            <th>Логин</th>
-                            <th>Пароль</th>
-                            <th>Статус</th>
-                            <th></th>
+                            <th>IP</th><th>Устройство</th><th>Модель</th>
+                            <th>Расположение</th><th>Статус</th>
+                            {% if can_edit_engineer %}<th></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for ip in project.ip_table %}
                         <tr>
-                            <td style="color:#5a8cc8;font-family:monospace;font-weight:400">{{ ip.ip_address }}</td>
-                            <td style="color:#f0ece4;font-weight:400">{{ ip.device_name }}</td>
+                            <td class="td-number" style="font-family:monospace;font-size:12px">{{ ip.ip_address }}</td>
+                            <td class="td-name">{{ ip.device_name }}</td>
                             <td class="td-muted">{{ ip.device_model or '—' }}</td>
                             <td class="td-muted">{{ ip.location or '—' }}</td>
-                            <td style="font-family:monospace;font-size:11px;color:#3a3835">{{ ip.mac_address or '—' }}</td>
-                            <td class="td-muted">{{ ip.login or '—' }}</td>
+                            <td><span class="badge badge--{{ 'in_progress' if ip.status == 'active' else 'issued' }}">{{ ip.status_label }}</span></td>
+                            {% if can_edit_engineer %}
                             <td>
-                                {% if ip.password %}
-                                <span class="pass-hidden" title="Нажмите чтобы показать">{{ ip.password }}</span>
-                                {% else %}
-                                <span class="td-muted">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if ip.status == 'active' %}
-                                <span class="badge badge--ok">Активен</span>
-                                {% elif ip.status == 'inactive' %}
-                                <span class="badge badge--cancelled">Неактивен</span>
-                                {% else %}
-                                <span class="badge badge--warn">Резерв</span>
-                                {% endif %}
-                            </td>
-                            <td class="td-actions">
                                 <form method="POST"
                                       action="{{ url_for('engineer.delete_ip', project_id=project.id, ip_id=ip.id) }}"
-                                      style="display:inline"
-                                      onsubmit="return confirm('Удалить запись?')">
-                                    <button type="submit" class="action-link action-link--danger">Удал.</button>
+                                      onsubmit="return confirm('Удалить?')">
+                                    <button type="submit" class="action-link action-link--danger">✕</button>
                                 </form>
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="table-footer">Устройств: {{ project.ip_table|length }}</div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📡</div>
-                <div class="empty-text">Таблица IP пуста</div>
-            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Устройств нет.</div>
             {% endif %}
 
-            <div class="add-form">
-                <div class="add-form-title">Добавить устройство (СОТ)</div>
-                <form method="POST" action="{{ url_for('engineer.add_ip', project_id=project.id) }}">
-                    <div class="add-row" style="margin-bottom:10px">
-                        <div class="form-group">
-                            <label class="form-label">IP-адрес *</label>
-                            <input type="text" name="ip_address" class="form-input" required placeholder="192.168.1.101">
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Название устройства *</label>
-                            <input type="text" name="device_name" class="form-input" required placeholder="Камера №1 — вход">
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Модель</label>
-                            <input type="text" name="device_model" class="form-input" placeholder="Hikvision DS-2CD2143G2-I">
-                        </div>
-                    </div>
-                    <div class="add-row">
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Расположение</label>
-                            <input type="text" name="location" class="form-input" placeholder="Вход, ул. Центральная">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">MAC-адрес</label>
-                            <input type="text" name="mac_address" class="form-input" placeholder="AA:BB:CC:DD:EE:FF">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Логин</label>
-                            <input type="text" name="login" class="form-input" placeholder="admin">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Пароль</label>
-                            <input type="text" name="password" class="form-input" placeholder="••••••••">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Статус</label>
-                            <select name="status" class="form-select">
-                                <option value="active">Активен</option>
-                                <option value="inactive">Неактивен</option>
-                                <option value="reserved">Резерв</option>
-                            </select>
-                        </div>
-                        <div style="display:flex;align-items:flex-end">
-                            <button type="submit" class="btn btn--primary">Добавить</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        {# ========== ФОТО ========== #}
-        <div id="tab-photos" class="tab-section">
-            {% if project.photos %}
-            <div class="photo-grid">
-                {% for photo in project.photos %}
-                <div class="photo-item">
-                    <img src="{{ photo.url }}" alt="{{ photo.description or 'Фото' }}"
-                         loading="lazy">
-                    <div class="photo-overlay">
-                        {% if photo.description %}
-                        <div class="photo-desc">{{ photo.description }}</div>
-                        {% endif %}
-                        <div style="font-size:10px;color:rgba(255,255,255,.4)">
-                            {{ photo.author.full_name }} · {{ photo.uploaded_at.strftime('%d.%m.%Y') }}
-                        </div>
-                        <form method="POST"
-                              action="{{ url_for('engineer.delete_photo', project_id=project.id, photo_id=photo.id) }}"
-                              onsubmit="return confirm('Удалить фото?')">
-                            <button type="submit" class="photo-del">Удалить</button>
-                        </form>
-                    </div>
+            {% if can_edit_engineer %}
+            <button class="btn btn--ghost btn--sm" onclick="toggleForm('add-ip-form')">+ Добавить устройство</button>
+            <form method="POST"
+                  action="{{ url_for('engineer.add_ip', project_id=project.id) }}"
+                  class="inline-add-form" id="add-ip-form">
+                <div class="form-row-compact">
+                    <div class="form-group-xs"><label class="form-label">IP-адрес</label>
+                        <input type="text" name="ip_address" class="form-input" required placeholder="192.168.1.10"></div>
+                    <div class="form-group-xs" style="flex:2"><label class="form-label">Устройство</label>
+                        <input type="text" name="device_name" class="form-input" required placeholder="Камера Hikvision"></div>
+                    <div class="form-group-xs" style="flex:2"><label class="form-label">Модель</label>
+                        <input type="text" name="device_model" class="form-input" placeholder="DS-2CD2143G2-I"></div>
+                    <div class="form-group-xs"><label class="form-label">Расположение</label>
+                        <input type="text" name="location" class="form-input" placeholder="Вход, ул."></div>
+                    <button type="submit" class="btn btn--primary btn--sm" style="margin-bottom:1px">Добавить</button>
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📷</div>
-                <div class="empty-text">Фото ещё не загружены</div>
-            </div>
-            {% endif %}
-
-            <div class="add-form" style="margin-top:20px">
-                <div class="add-form-title">Загрузить фото</div>
-                <form method="POST"
-                      action="{{ url_for('engineer.upload_photo', project_id=project.id) }}"
-                      enctype="multipart/form-data">
-                    <div class="add-row">
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Файл (jpg, png, gif, webp)</label>
-                            <input type="file" name="photo" class="form-input" required
-                                   accept="image/*" style="padding:8px 12px">
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Описание</label>
-                            <input type="text" name="description" class="form-input"
-                                   placeholder="Монтаж кабельного лотка, 2 этаж">
-                        </div>
-                        <div style="display:flex;align-items:flex-end">
-                            <button type="submit" class="btn btn--primary">Загрузить</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        {# ========== ЗАМЕТКИ ========== #}
-        <div id="tab-notes" class="tab-section">
-            {% if project.notes %}
-                {% for note in project.notes %}
-                <div class="note-item note-item--{{ note.note_type }}">
-                    <div class="note-header">
-                        <span class="note-type">{{ note.type_label }}</span>
-                        <span class="note-meta">
-                            {{ note.author.full_name }} · {{ note.created_at.strftime('%d.%m.%Y %H:%M') }}
-                        </span>
-                    </div>
-                    <div class="note-text">{{ note.text }}</div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📝</div>
-                <div class="empty-text">Заметок пока нет</div>
-            </div>
-            {% endif %}
-
-            <div class="add-form" style="margin-top:16px">
-                <div class="add-form-title">Добавить заметку</div>
-                <form method="POST" action="{{ url_for('engineer.add_note', project_id=project.id) }}">
-                    <div class="add-row" style="margin-bottom:10px">
-                        <div class="form-group" style="min-width:140px">
-                            <label class="form-label">Тип</label>
-                            <select name="note_type" class="form-select">
-                                <option value="note">Заметка</option>
-                                <option value="problem">Проблема</option>
-                                <option value="task">Задача</option>
-                                <option value="info">Информация</option>
-                            </select>
-                        </div>
-                        <div class="form-group form-group--wide">
-                            <label class="form-label">Текст *</label>
-                            <textarea name="text" class="form-textarea" rows="2" required
-                                      placeholder="Текст заметки..."></textarea>
-                        </div>
-                        <div style="display:flex;align-items:flex-end">
-                            <button type="submit" class="btn btn--primary">Добавить</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        {# ========== ЗАКАЗЫ СО СКЛАДА ========== #}
-        <div id="tab-orders" class="tab-section">
-            {% if related_orders %}
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Номер</th>
-                            <th>Инженер</th>
-                            <th>Статус</th>
-                            <th>Позиций</th>
-                            <th>Дата</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in related_orders %}
-                        <tr>
-                            <td class="td-number">{{ order.number }}</td>
-                            <td>{{ order.assignee.full_name if order.assignee else '—' }}</td>
-                            <td>
-                                <span class="badge badge--{{ order.status }}">{{ order.status_label }}</span>
-                            </td>
-                            <td class="td-muted">{{ order.total_items }}</td>
-                            <td class="td-date">{{ order.created_at.strftime('%d.%m.%Y') }}</td>
-                            <td class="td-actions">
-                                <a href="{{ url_for('warehouse.export_order', order_id=order.id) }}"
-                                   class="action-link">↓ Excel</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="table-footer">Заказов: {{ related_orders|length }}</div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📦</div>
-                <div class="empty-text">Заказов со склада по этому объекту нет</div>
-                <a href="{{ url_for('warehouse.create_order') }}" class="btn btn--primary">
-                    Создать заказ
-                </a>
-            </div>
+            </form>
             {% endif %}
         </div>
-
     </div>
+
+    {# ══════════════════════════════════════════════════════════════
+       БЛОК 6 — ЗАМЕТКИ (все)
+    ══════════════════════════════════════════════════════════════ #}
+    <div class="proj-section" id="notes">
+        <div class="proj-section-header" onclick="toggleSection('sec-notes', this)">
+            <div class="proj-section-title">
+                <span class="proj-section-icon">💬</span>
+                Заметки и комментарии
+                <span class="role-badge role-all">Все</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <span class="proj-section-meta">{{ project.notes|length }}</span>
+                <span class="proj-section-chevron">▼</span>
+            </div>
+        </div>
+        <div class="proj-section-body collapsed" id="sec-notes">
+            {% for note in project.notes %}
+            <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+                    <span class="badge badge--{{ 'cancelled' if note.note_type == 'problem' else 'new' if note.note_type == 'task' else 'issued' }}">
+                        {{ note.type_label }}
+                    </span>
+                    <span style="font-size:11px;color:var(--text-muted)">
+                        {{ note.author.full_name if note.author else '—' }}
+                        · {{ note.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </span>
+                </div>
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">{{ note.text }}</div>
+            </div>
+            {% else %}
+            <div style="font-size:12px;color:var(--text-muted)">Заметок нет.</div>
+            {% endfor %}
+
+            <form method="POST"
+                  action="{{ url_for('engineer.add_note', project_id=project.id) }}"
+                  style="margin-top:16px">
+                <div class="form-row-compact">
+                    <div class="form-group-xs" style="flex:4">
+                        <textarea name="text" class="form-input" rows="2"
+                                  placeholder="Добавить заметку, задачу или проблему…"
+                                  style="resize:none"></textarea>
+                    </div>
+                    <div class="form-group-xs" style="max-width:130px">
+                        <label class="form-label">Тип</label>
+                        <select name="note_type" class="form-select">
+                            <option value="note">Заметка</option>
+                            <option value="task">Задача</option>
+                            <option value="problem">Проблема</option>
+                            <option value="info">Информация</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--sm" style="margin-bottom:1px">
+                        Добавить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function showTab(name) {
-    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    event.currentTarget.classList.add('active');
+function toggleSection(id, header) {
+    const body = document.getElementById(id);
+    const chevron = header.querySelector('.proj-section-chevron');
+    body.classList.toggle('collapsed');
+    chevron.classList.toggle('open');
 }
 
-// Открыть таб по якорю в URL
-const hash = window.location.hash.replace('#', '');
-const validTabs = ['checklist', 'cables', 'iptable', 'photos', 'notes', 'orders'];
-if (hash && validTabs.includes(hash)) {
-    const tabs = document.querySelectorAll('.inner-tab');
-    const idx = validTabs.indexOf(hash);
-    if (idx >= 0) {
-        document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
-        tabs.forEach(t => t.classList.remove('active'));
-        document.getElementById('tab-' + hash).classList.add('active');
-        tabs[idx].classList.add('active');
-    }
+function toggleForm(id) {
+    const form = document.getElementById(id);
+    form.classList.toggle('show');
 }
+
+// Добавление строки в форму заказа
+const orderRowTpl = document.querySelector('.order-item-row')?.cloneNode(true);
+
+function addOrderRow() {
+    if (!orderRowTpl) return;
+    const row = orderRowTpl.cloneNode(true);
+    row.querySelectorAll('select, input').forEach(el => el.value = '');
+    row.querySelector('.order-unit').textContent = 'шт';
+    document.getElementById('order-items-list').appendChild(row);
+    bindOrderUnit(row);
+}
+
+function bindOrderUnit(row) {
+    const sel = row.querySelector('.order-item-sel');
+    if (!sel) return;
+    sel.addEventListener('change', function() {
+        row.querySelector('.order-unit').textContent =
+            this.options[this.selectedIndex].dataset.unit || 'шт';
+    });
+}
+document.querySelectorAll('.order-item-row').forEach(bindOrderUnit);
+
+// Выбор файла — показываем имя
+document.querySelectorAll('input[type="file"]').forEach(input => {
+    input.addEventListener('change', function() {
+        const btn = this.closest('label');
+        if (btn && this.files[0]) {
+            btn.textContent = this.files[0].name.slice(0, 18) + (this.files[0].name.length > 18 ? '…' : '');
+        }
+    });
+});
 </script>
 {% endblock %}

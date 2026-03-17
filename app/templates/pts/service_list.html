@@ -5,27 +5,20 @@
 <style>
 .theme-pts .sidebar-link.active{background:rgba(90,140,200,.06);color:#5a8cc8;border-left-color:#5a8cc8}
 .theme-pts .page-tag{color:#5a8cc8}
-.obj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.obj-card{background:#0f0f11;border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:16px 18px;transition:all .2s;display:block}
-.obj-card:hover{border-color:rgba(90,140,200,.3);transform:translateY(-2px);color:inherit}
-.obj-card--active{border-left:3px solid #4caf6b}
-.obj-card--warranty{border-left:3px solid #5a8cc8}
-.obj-card--one_time{border-left:3px solid #b98c50}
-.obj-card--inactive{border-left:3px solid #3a3835}
-.obj-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
-.obj-name{font-size:13px;color:#f0ece4;font-weight:400;line-height:1.3}
-.obj-cat{display:inline-flex;align-items:center;gap:5px;margin-bottom:6px}
-.obj-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.obj-cat-name{font-size:10px;color:#3a3835;letter-spacing:1px}
-.obj-address{font-size:11px;color:#3a3835;margin-bottom:8px;line-height:1.5}
-.obj-systems{font-size:11px;color:#3a3835;margin-bottom:10px}
-.obj-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)}
-.obj-engineer{font-size:10px;color:#2a2825}
-.obj-to-date{font-size:10px;white-space:nowrap}
 .to-overdue{color:#e06060}
 .to-soon{color:#b98c50}
 .to-ok{color:#4caf6b}
-.to-none{color:#2a2825}
+.to-none{color:var(--text-muted)}
+.obj-row { cursor:pointer; }
+.obj-row:hover td { background: var(--bg-hover) !important; }
+.cat-dot { width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0 }
+.status-active   { background:rgba(45,106,58,.12);  color:#4caf6b }
+.status-warranty { background:rgba(90,140,200,.12); color:#5a8cc8 }
+.status-one_time { background:rgba(185,140,80,.12); color:var(--gold) }
+.status-inactive { background:rgba(255,255,255,.05);color:var(--text-muted) }
+.status-inst_mounting { background:rgba(122,110,170,.12); color:#9d90cc }
+.status-inst_pnr      { background:rgba(90,140,200,.12);  color:#5a8cc8 }
+.status-inst_done     { background:rgba(45,106,58,.12);   color:#4caf6b }
 </style>
 {% endblock %}
 
@@ -46,87 +39,84 @@
 
         <div class="filter-bar">
             {% for val, lbl in [('','Все'),('active','На обслуживании'),('warranty','На гарантии'),('one_time','Разовый'),('inactive','Снят')] %}
-            {% set is_active = status_filter == val %}
-            {% if is_active %}
             <a href="{{ url_for('pts.service_list', status=val, cat=cat_filter) }}"
-               class="filter-tab filter-tab--active">{{ lbl }}</a>
-            {% else %}
-            <a href="{{ url_for('pts.service_list', status=val, cat=cat_filter) }}"
-               class="filter-tab">{{ lbl }}</a>
-            {% endif %}
+               class="filter-tab {% if status_filter == val %}filter-tab--active{% endif %}">{{ lbl }}</a>
             {% endfor %}
 
             {% if categories %}
             <select class="filter-select" onchange="location.href=this.value">
-                <option value="{{ url_for('pts.service_list', status=status_filter) }}">
-                    Все категории
-                </option>
-                {% for cat in categories %}
-                {% set is_sel = cat_filter == cat.id %}
-                {% if is_sel %}
-                <option value="{{ url_for('pts.service_list', status=status_filter, cat=cat.id) }}" selected>
-                    {{ cat.name }}
-                </option>
-                {% else %}
-                <option value="{{ url_for('pts.service_list', status=status_filter, cat=cat.id) }}">
-                    {{ cat.name }}
-                </option>
-                {% endif %}
-                {% endfor %}
-            </select>
+    <option value="{{ url_for('pts.service_list', status=status_filter) }}">Все категории</option>
+    {% for cat in categories %}
+    <option value="{{ url_for('pts.service_list', status=status_filter, cat=cat.id) }}"
+            {% if cat_filter == cat.id %}selected{% endif %}>
+        {{ cat.name }}
+    </option>
+    {% endfor %}
+</select>
             {% endif %}
+
+            <input type="text" id="obj-search" class="filter-input"
+                   placeholder="Поиск по названию, адресу…"
+                   oninput="filterRows(this.value)"
+                   style="max-width:240px;margin-left:auto">
         </div>
 
         {% if objects %}
-        <div class="obj-grid">
-            {% for obj in objects %}
-            <a href="{{ url_for('pts.object_detail', obj_id=obj.id) }}"
-               class="obj-card obj-card--{{ obj.status }}">
-
-                <div class="obj-top">
-                    <div class="obj-name">{{ obj.name }}</div>
-                    <span class="badge badge--{{ obj.status }}" style="white-space:nowrap;font-size:9px">
-                        {{ obj.status_label }}
-                    </span>
-                </div>
-
-                <div class="obj-cat">
-                    <div class="obj-cat-dot" style="background:{{ obj.category.color }}"></div>
-                    <span class="obj-cat-name">{{ obj.category.name }}</span>
-                </div>
-
-                {% if obj.address %}
-                <div class="obj-address">📍 {{ obj.address }}</div>
-                {% endif %}
-
-                {% if obj.systems %}
-                <div class="obj-systems">🔧 {{ obj.systems }}</div>
-                {% endif %}
-
-                <div class="obj-footer">
-                    <span class="obj-engineer">
-                        {% if obj.engineer %}👷 {{ obj.engineer.full_name }}{% endif %}
-                    </span>
-                    <span class="obj-to-date">
-                        {% if obj.next_to_date %}
-                        {% set days = (obj.next_to_date.date() - now.date()).days %}
-                        {% if days < 0 %}
-                        <span class="to-overdue">⚠ просрочено</span>
-                        {% elif days <= 30 %}
-                        <span class="to-soon">ТО {{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
-                        {% else %}
-                        <span class="to-ok">ТО {{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
-                        {% endif %}
-                        {% else %}
-                        <span class="to-none">ТО не назначено</span>
-                        {% endif %}
-                    </span>
-                </div>
-
-            </a>
-            {% endfor %}
+        <div class="table-wrap">
+            <table class="data-table" id="obj-table">
+                <thead>
+                    <tr>
+                        <th>Объект</th>
+                        <th>Категория</th>
+                        <th>Адрес</th>
+                        <th>Инженер</th>
+                        <th>Следующее ТО</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for obj in objects %}
+                    <tr class="obj-row"
+                        onclick="location.href='{{ url_for('pts.object_detail', obj_id=obj.id) }}'"
+                        data-search="{{ (obj.name ~ ' ' ~ (obj.address or '') ~ ' ' ~ (obj.client_name or '')) | lower }}">
+                        <td class="td-name">{{ obj.name }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:7px">
+                                <span class="cat-dot" style="background:{{ obj.category.color }}"></span>
+                                <span class="td-muted" style="font-size:12px">{{ obj.category.name }}</span>
+                            </div>
+                        </td>
+                        <td class="td-muted" style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                            {{ obj.address or '—' }}
+                        </td>
+                        <td class="td-muted" style="font-size:12px">
+                            {{ obj.engineer.full_name if obj.engineer else '—' }}
+                        </td>
+                        <td style="white-space:nowrap;font-size:12px">
+                            {% if obj.next_to_date %}
+                                {% set days = (obj.next_to_date.date() - now.date()).days %}
+                                {% if days < 0 %}
+                                <span class="to-overdue">⚠ просрочено</span>
+                                {% elif days <= 30 %}
+                                <span class="to-soon">{{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
+                                {% else %}
+                                <span class="to-ok">{{ obj.next_to_date.strftime('%d.%m.%Y') }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="to-none">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge status-{{ obj.status }}" style="font-size:9px">
+                                {{ obj.status_label }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <div class="table-footer">Объектов: {{ objects|length }}</div>
+        <div class="table-footer" id="obj-count">Объектов: {{ objects|length }}</div>
 
         {% else %}
         <div class="empty-state">
@@ -139,7 +129,23 @@
             </a>
         </div>
         {% endif %}
-
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterRows(q) {
+    q = q.toLowerCase().trim();
+    var rows = document.querySelectorAll('#obj-table tbody tr');
+    var visible = 0;
+    rows.forEach(function(row) {
+        var match = !q || (row.dataset.search || '').indexOf(q) !== -1;
+        row.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    var cnt = document.getElementById('obj-count');
+    if (cnt) cnt.textContent = 'Объектов: ' + visible;
+}
+</script>
 {% endblock %}

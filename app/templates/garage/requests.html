@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Заявки на транспорт — Гараж{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<style>
+.theme-garage .sidebar-link.active{background:rgba(200,100,60,.06);color:#c8643c;border-left-color:#c8643c}
+.theme-garage .page-tag{color:#c8643c}
+.rq-new      { background:rgba(185,140,80,.12); color:var(--gold) }
+.rq-approved { background:rgba(45,106,58,.12);  color:#4caf6b }
+.rq-rejected { background:rgba(138,48,48,.12);  color:#e06060 }
+.rq-done     { background:rgba(255,255,255,.05);color:var(--text-muted) }
+.review-form {
+    display:none; padding:12px 16px; background:var(--bg-base);
+    border-top:1px solid var(--border);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar theme-garage">
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">Гараж</span>
+            <a href="{{ url_for('garage.dashboard') }}" class="sidebar-link">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('garage.vehicles') }}" class="sidebar-link">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 10V7l2-4h8l2 4v3H2z" opacity=".2"/><path d="M2 10V7l2-4h8l2 4v3H2zm0 0v2h12v-2"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="11.5" cy="12" r="1.5"/></svg>
+                Транспорт
+            </a>
+            <a href="{{ url_for('garage.requests_list') }}" class="sidebar-link active">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h4v1H5z"/></svg>
+                Заявки
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Гараж</div>
+                <h1 class="page-title">Заявки на транспорт</h1>
+            </div>
+            <a href="{{ url_for('garage.transport_request') }}" class="btn btn--primary">
+                + Подать заявку
+            </a>
+        </div>
+
+        {% if requests %}
+        <div style="display:flex;flex-direction:column;gap:8px">
+            {% for req in requests %}
+            <div style="background:var(--bg-surface);border:1px solid var(--border);
+                        border-radius:var(--radius);overflow:hidden">
+                <div style="padding:14px 18px;display:flex;align-items:center;gap:16px">
+                    <div style="flex:1">
+                        <div style="font-size:13px;color:var(--text-primary);margin-bottom:3px">
+                            {{ req.destination }}
+                        </div>
+                        <div style="font-size:11px;color:var(--text-muted);display:flex;gap:12px">
+                            <span>📅 {{ req.planned_date.strftime('%d.%m.%Y') }}</span>
+                            <span>👤 {{ req.requester.full_name }}</span>
+                            {% if req.passengers %}<span>{{ req.passengers }} чел.</span>{% endif %}
+                            {% if req.purpose %}<span>{{ req.purpose }}</span>{% endif %}
+                        </div>
+                        {% if req.vehicle %}
+                        <div style="font-size:11px;color:var(--gold);margin-top:3px">
+                            🚗 {{ req.vehicle.name }} · {{ req.vehicle.plate }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <span class="badge rq-{{ req.status }}">{{ req.status_label }}</span>
+                    {% if can_manage and req.status == 'new' %}
+                    <button class="btn btn--ghost btn--sm"
+                            onclick="toggleReview('rv-{{ req.id }}')">
+                        Рассмотреть
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if can_manage and req.status == 'new' %}
+                <div class="review-form" id="rv-{{ req.id }}">
+                    <form method="POST" action="{{ url_for('garage.review_request', req_id=req.id) }}">
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                            <div class="form-group" style="flex:2;min-width:180px;margin:0">
+                                <label class="form-label">Назначить автомобиль</label>
+                                <select name="vehicle_id" class="form-select">
+                                    <option value="">— Без машины —</option>
+                                    {% for v in vehicles_list %}
+                                    <option value="{{ v.id }}">{{ v.name }} · {{ v.plate }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex:2;min-width:180px;margin:0">
+                                <label class="form-label">Примечание</label>
+                                <input type="text" name="review_note" class="form-input"
+                                       placeholder="Необязательно">
+                            </div>
+                            <button type="submit" name="action" value="approve"
+                                    class="btn btn--primary btn--sm">Одобрить</button>
+                            <button type="submit" name="action" value="reject"
+                                    class="btn btn--ghost btn--sm"
+                                    style="color:#e06060;border-color:rgba(224,96,96,.3)">
+                                Отклонить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
+                {% if req.review_note %}
+                <div style="padding:8px 18px;border-top:1px solid var(--border);
+                            font-size:11px;color:var(--text-muted)">
+                    {{ req.review_note }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">Заявок нет</div>
+            <a href="{{ url_for('garage.transport_request') }}"
+               class="btn btn--primary" style="margin-top:16px">Подать заявку</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleReview(id) {
+    var f = document.getElementById(id);
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

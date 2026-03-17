@@ -1,22 +1,162 @@
 {% extends "base.html" %}
-{% block title %}Транспорт — Гараж{% endblock %}
+{% block title %}Гараж — АБ Радонеж{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 <style>
-.theme-garage .sidebar-link.active{background:rgba(200,100,60,.06);color:#c8643c;border-left-color:#c8643c}
-.theme-garage .page-tag{color:#c8643c}
+.theme-garage .sidebar-link.active { background:rgba(200,100,60,.06); color:#c8643c; border-left-color:#c8643c }
+.theme-garage .page-tag { color:#c8643c }
+.theme-garage .metric-card--accent { border-top-color:#c8643c }
+.v-card {
+    background:var(--bg-surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 18px; transition:all .2s;
+    display:flex; align-items:center; gap:16px;
+}
+.v-card:hover { border-color:rgba(200,100,60,.3); }
+.v-plate {
+    font-family:var(--font-display); font-size:18px; letter-spacing:2px;
+    color:var(--text-primary); min-width:110px;
+}
+.v-name { font-size:13px; color:var(--text-secondary); margin-bottom:3px; }
+.v-driver { font-size:11px; color:var(--text-muted); }
+.st-available   { background:rgba(45,106,58,.12);  color:#4caf6b }
+.st-on_route    { background:rgba(90,140,200,.12); color:#5a8cc8 }
+.st-maintenance { background:rgba(185,140,80,.12); color:var(--gold) }
+.st-inactive    { background:rgba(255,255,255,.05);color:var(--text-muted) }
+.warn-row { display:flex; align-items:center; gap:10px; padding:8px 0;
+            border-bottom:1px solid rgba(255,255,255,.04); font-size:12px; }
+.warn-row:last-child { border-bottom:none }
+.warn-days { font-size:20px; font-family:var(--font-display);
+             min-width:36px; text-align:center; }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="page-with-sidebar theme-garage">
-    {% include "garage/_sidebar.html" %}
-    <div class="sidebar-content">
-        <div class="page-tag">Гараж</div>
-        <h1 class="page-title">Транспорт</h1>
-        <div class="empty-state" style="margin-top:24px">
-            <div class="empty-icon">🚗</div>
-            <div class="empty-text">Расширенный учёт транспорта в разработке</div>
+    <nav class="left-sidebar">
+        <div class="sidebar-section">
+            <span class="sidebar-label">Гараж</span>
+            <a href="{{ url_for('garage.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'garage.dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                Дашборд
+            </a>
+            <a href="{{ url_for('garage.vehicles') }}"
+               class="sidebar-link {% if request.endpoint in ('garage.vehicles','garage.vehicle_detail') %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 10V7l2-4h8l2 4v3H2z" opacity=".2"/><path d="M2 10V7l2-4h8l2 4v3H2zm0 0v2h12v-2"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="11.5" cy="12" r="1.5"/></svg>
+                Транспорт
+                <span style="margin-left:auto;font-size:10px;color:var(--text-muted)">{{ stats.total }}</span>
+            </a>
+            <a href="{{ url_for('garage.requests_list') }}"
+               class="sidebar-link {% if request.endpoint in ('garage.requests_list','garage.transport_request') %}active{% endif %}">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2z" opacity=".15"/><path d="M5 5h6v1H5zm0 3h4v1H5z"/></svg>
+                Заявки
+                {% if stats.new_requests > 0 %}
+                <span style="margin-left:auto;background:rgba(200,100,60,.2);color:#c8643c;
+                             font-size:10px;padding:1px 7px;border-radius:10px">
+                    {{ stats.new_requests }}
+                </span>
+                {% endif %}
+            </a>
         </div>
+    </nav>
+
+    <div class="sidebar-content">
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Гараж</div>
+                <h1 class="page-title">Дашборд</h1>
+            </div>
+            <div class="header-actions">
+                {% if current_user.role in ('garage','director') %}
+                <a href="{{ url_for('garage.add_vehicle') }}" class="btn btn--primary">+ Автомобиль</a>
+                {% endif %}
+                <a href="{{ url_for('garage.transport_request') }}" class="btn btn--ghost">Подать заявку</a>
+            </div>
+        </div>
+
+        <div class="metrics-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:20px">
+            <div class="metric-card metric-card--accent">
+                <div class="metric-label">Всего машин</div>
+                <div class="metric-value">{{ stats.total }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Свободно</div>
+                <div class="metric-value" style="color:#4caf6b">{{ stats.available }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">В пути</div>
+                <div class="metric-value" style="color:#5a8cc8">{{ stats.on_route }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">На ТО</div>
+                <div class="metric-value" style="color:var(--gold)">{{ stats.maintenance }}</div>
+            </div>
+        </div>
+
+        {% if warnings %}
+        <div style="background:rgba(185,140,80,.06);border:1px solid rgba(185,140,80,.2);
+                    border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
+            <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;
+                        color:var(--gold);margin-bottom:12px">⚠ Требует внимания</div>
+            {% for w in warnings %}
+            <div class="warn-row">
+                <div class="warn-days" style="color:{% if w.days <= 0 %}#e06060{% elif w.days <= 14 %}#e06060{% else %}var(--gold){% endif %}">
+                    {{ w.days }}д
+                </div>
+                <div>
+                    <span style="color:var(--text-secondary)">{{ w.vehicle.name }}</span>
+                    <span style="color:var(--text-muted)"> · {{ w.vehicle.plate }}</span>
+                    <span style="margin-left:8px;font-size:10px;letter-spacing:1px;color:var(--gold)">
+                        {{ w.type }}
+                    </span>
+                </div>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">
+                    до {{ w.date.strftime('%d.%m.%Y') if w.date else '—' }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if vehicles %}
+        <div style="display:flex;flex-direction:column;gap:8px">
+            {% for v in vehicles %}
+            <a href="{{ url_for('garage.vehicle_detail', vid=v.id) }}" class="v-card" style="text-decoration:none">
+                <div>
+                    <div class="v-plate">{{ v.plate }}</div>
+                    {% if v.color %}
+                    <div style="font-size:10px;color:var(--text-muted)">{{ v.color }}</div>
+                    {% endif %}
+                </div>
+                <div style="flex:1">
+                    <div class="v-name">{{ v.name }}{% if v.year %} · {{ v.year }}{% endif %}</div>
+                    <div class="v-driver">
+                        {% if v.driver %}👤 {{ v.driver.full_name }}{% else %}Водитель не назначен{% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">
+                        {{ '{:,}'.format(v.mileage).replace(',', ' ') }} км
+                    </div>
+                    {% if v.has_warnings %}
+                    <div style="font-size:10px;color:var(--gold)">⚠ Документы</div>
+                    {% endif %}
+                </div>
+                <span class="badge st-{{ v.status }}">{{ v.status_label }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🚗</div>
+            <div class="empty-text">Транспорт не добавлен</div>
+            {% if current_user.role in ('garage','director') %}
+            <a href="{{ url_for('garage.add_vehicle') }}" class="btn btn--primary" style="margin-top:16px">
+                Добавить первый автомобиль
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

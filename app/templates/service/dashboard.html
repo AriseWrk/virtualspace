@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Сервисная служба — АБ Радонеж{% endblock %}
+
+{% block extra_css %}
+<style>
+.svc-accent { color: #e07840; }
+.priority-urgent { border-left: 3px solid #e06060 !important; }
+.priority-normal  { border-left: 3px solid var(--border) !important; }
+
+.task-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 16px;
+    transition: background .15s;
+}
+.task-card:hover { background: var(--bg-hover); color: inherit; }
+.task-num {
+    font-family: var(--font-display);
+    font-size: 18px; color: var(--gold);
+    min-width: 72px; flex-shrink: 0;
+}
+.task-main { flex: 1; min-width: 0; }
+.task-object { font-size: 13px; color: var(--text-primary); font-weight: 400; margin-bottom: 3px; }
+.task-meta   { font-size: 11px; color: var(--text-muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.task-engineers {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; gap: 4px; flex-wrap: wrap; min-width: 120px;
+}
+.eng-chip {
+    background: rgba(185,140,80,.1); color: var(--gold);
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; white-space: nowrap;
+}
+.task-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; min-width: 80px; }
+.urgent-badge {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    background: rgba(224,96,96,.15); color: #e06060;
+    padding: 2px 8px; border-radius: 2px; white-space: nowrap;
+}
+
+/* Статус-бейджи */
+.st-new        { background:rgba(255,255,255,.06); color:var(--text-muted) }
+.st-assigned   { background:rgba(185,140,80,.12);  color:var(--gold) }
+.st-in_progress{ background:rgba(90,140,200,.12);  color:#5a8cc8 }
+.st-done       { background:rgba(45,106,58,.12);   color:#4caf6b }
+.st-failed     { background:rgba(138,48,48,.12);   color:#e06060 }
+.st-cancelled  { background:rgba(255,255,255,.05); color:var(--text-muted) }
+
+.metric-card--svc { border-top: 2px solid #e07840; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <div>
+            <div class="page-tag" style="color:#e07840">Сервисная служба</div>
+            <h1 class="page-title">План-задания</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('service.engineers_list') }}" class="btn btn--ghost btn--sm">
+                👷 Инженеры
+            </a>
+            {% if can_create %}
+            <button class="btn btn--ghost btn--sm" id="btn-build-route"
+                    onclick="buildRoute()" style="display:none">
+                🗺 Маршрут выбранных
+            </button>
+            <a href="{{ url_for('service.create_task') }}" class="btn btn--primary">
+                + Создать задание
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Метрики #}
+    <div class="metrics-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:24px">
+        <div class="metric-card metric-card--svc">
+            <div class="metric-label">Всего</div>
+            <div class="metric-value">{{ stats.total }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Новые</div>
+            <div class="metric-value">{{ stats.new }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">В работе</div>
+            <div class="metric-value">{{ stats.in_progress }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Выполнено</div>
+            <div class="metric-value" style="color:#4caf6b">{{ stats.done }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Срочных</div>
+            <div class="metric-value {% if stats.urgent > 0 %}metric-value--warn{% endif %}">
+                {{ stats.urgent }}
+            </div>
+        </div>
+    </div>
+
+    {# Фильтры #}
+    <form method="GET" class="filter-bar" style="margin-bottom:20px">
+        <input type="text" name="q" value="{{ q }}"
+               class="filter-input" placeholder="Поиск по номеру, объекту…" style="max-width:260px">
+
+        <select name="status" class="filter-select" onchange="this.form.submit()">
+            <option value="">Все статусы</option>
+            {% for val, label in status_choices.items() %}
+            <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>
+                {{ label }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <select name="priority" class="filter-select" id="sel-priority-filter" onchange="this.form.submit()">
+            <option value="">Все приоритеты</option>
+            <option value="urgent">🔴 Срочно</option>
+            <option value="normal">Обычный</option>
+        </select>
+
+        <button type="submit" class="btn btn--ghost btn--sm">Найти</button>
+        {% if q or status_filter or priority_filter %}
+        <a href="{{ url_for('service.dashboard') }}" class="btn btn--ghost btn--sm">✕ Сбросить</a>
+        {% endif %}
+    </form>
+
+    {# Список заданий #}
+    {% if tasks %}
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px" id="route-hint" style="display:none">
+        Отметьте задания для построения маршрута
+    </div>
+    {% for task in tasks %}
+    <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" class="task-check" value="{{ task.id }}"
+               style="accent-color:var(--gold);width:16px;height:16px;flex-shrink:0;cursor:pointer"
+               onchange="updateRouteBtn()">
+        <a href="{{ url_for('service.task_detail', task_id=task.id) }}"
+           class="task-card priority-{{ task.priority }}" style="text-decoration:none;flex:1">
+
+        <div class="task-num">{{ task.number }}</div>
+
+        <div class="task-main">
+            <div class="task-object">
+                {{ task.object_name }}
+                {% if task.object_address %}
+                <span style="font-size:11px;color:var(--text-muted)"> · {{ task.object_address }}</span>
+                {% endif %}
+            </div>
+            <div class="task-meta">
+                <span>{{ task.work_type_label }}</span>
+                {% if task.created_by %}
+                <span>создал {{ task.created_by.full_name }}</span>
+                {% endif %}
+                {% if task.planned_date %}
+                <span style="color:var(--gold)">
+                    📅 {{ task.planned_date.strftime('%d.%m.%Y %H:%M') }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="task-engineers">
+            {% for te in task.engineers %}
+            <span class="eng-chip">{{ te.engineer.full_name }}</span>
+            {% else %}
+            <span style="color:var(--text-muted);font-size:11px">Не назначен</span>
+            {% endfor %}
+        </div>
+
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <span class="badge st-{{ task.status }}">{{ task.status_label }}</span>
+            {% if task.is_urgent %}
+            <span class="urgent-badge">Срочно</span>
+            {% endif %}
+        </div>
+        </a>
+    </div>
+    {% endfor %}
+
+    <div class="table-footer">Заданий: {{ tasks|length }}</div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">
+            {% if q or status_filter or priority_filter %}
+            Ничего не найдено
+            {% else %}
+            План-заданий нет
+            {% endif %}
+        </div>
+        {% if can_create and not q and not status_filter %}
+        <a href="{{ url_for('service.create_task') }}" class="btn btn--primary" style="margin-top:16px">
+            Создать первое задание
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateRouteBtn() {
+    var checked = document.querySelectorAll('.task-check:checked');
+    var btn = document.getElementById('btn-build-route');
+    var hint = document.getElementById('route-hint');
+    if (btn) btn.style.display = checked.length >= 2 ? 'inline-flex' : 'none';
+    if (hint) hint.style.display = checked.length > 0 ? 'block' : 'none';
+    if (btn && checked.length >= 2) {
+        btn.textContent = '🗺 Маршрут (' + checked.length + ' объектов)';
+    }
+}
+
+function buildRoute() {
+    var checked = document.querySelectorAll('.task-check:checked');
+    if (checked.length < 2) return;
+    var ids = Array.from(checked).map(function(cb) { return cb.value; }).join(',');
+    window.location.href = '/route/build?task_ids=' + ids;
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    var pf = "{{ priority_filter }}";
+    var sp = document.getElementById('sel-priority-filter');
+    if (sp && pf) {
+        for (var i = 0; i < sp.options.length; i++) {
+            if (sp.options[i].value === pf) { sp.selectedIndex = i; break; }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}{{ task.number }} — Сервисная служба{% endblock %}
+
+{% block extra_css %}
+<style>
+.st-new        { background:rgba(255,255,255,.06); color:var(--text-muted) }
+.st-assigned   { background:rgba(185,140,80,.12);  color:var(--gold) }
+.st-in_progress{ background:rgba(90,140,200,.12);  color:#5a8cc8 }
+.st-done       { background:rgba(45,106,58,.12);   color:#4caf6b }
+.st-failed     { background:rgba(138,48,48,.12);   color:#e06060 }
+.st-cancelled  { background:rgba(255,255,255,.05); color:var(--text-muted) }
+
+.info-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+}
+.info-cell {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+.info-cell:nth-child(even) { border-right: none; }
+.info-cell:nth-last-child(-n+2) { border-bottom: none; }
+.info-label {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 5px;
+}
+.info-value { font-size: 13px; color: var(--text-primary); }
+
+.section-block {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 16px; overflow: hidden;
+}
+.section-block-header {
+    padding: 13px 20px; border-bottom: 1px solid var(--border);
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-muted); display: flex; justify-content: space-between;
+    align-items: center;
+}
+.section-block-body { padding: 20px; }
+
+.eng-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.eng-row:last-child { border-bottom: none; }
+.eng-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(185,140,80,.15); border: 1px solid rgba(185,140,80,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--gold); flex-shrink: 0;
+}
+
+.report-field { margin-bottom: 14px; }
+.report-field label { display: block; margin-bottom: 6px; }
+
+.verdict-done       { color: #4caf6b }
+.verdict-partial    { color: var(--gold) }
+.verdict-failed     { color: #e06060 }
+.verdict-rescheduled{ color: #5a8cc8 }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    {# Шапка #}
+    <div class="page-header">
+        <div>
+            <div class="page-tag">
+                <a href="{{ url_for('service.dashboard') }}" style="color:#e07840">Сервисная служба</a>
+                &nbsp;/&nbsp; {{ task.number }}
+            </div>
+            <h1 class="page-title">{{ task.object_name }}</h1>
+            {% if task.object_address %}
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                📍 {{ task.object_address }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="header-actions">
+            <span class="badge st-{{ task.status }}">{{ task.status_label }}</span>
+            {% if task.is_urgent %}
+            <span class="badge" style="background:rgba(224,96,96,.15);color:#e06060">🔴 Срочно</span>
+            {% endif %}
+            {% if can_create and task.status not in ('done','failed','cancelled') %}
+            <a href="{{ url_for('service.edit_task', task_id=task.id) }}"
+               class="btn btn--ghost btn--sm">Редактировать</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Инфо-сетка #}
+    <div class="info-grid">
+        <div class="info-cell">
+            <div class="info-label">Тип работы</div>
+            <div class="info-value">{{ task.work_type_label }}</div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label">Приоритет</div>
+            <div class="info-value">
+                {% if task.is_urgent %}
+                <span style="color:#e06060">{{ task.priority_label }}</span>
+                {% else %}
+                {{ task.priority_label }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label">Плановая дата</div>
+            <div class="info-value">
+                {% if task.planned_date %}
+                {{ task.planned_date.strftime('%d.%m.%Y %H:%M') }}
+                {% else %}<span style="color:var(--text-muted)">Не указана</span>{% endif %}
+            </div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label">Создал</div>
+            <div class="info-value">
+                {{ task.created_by.full_name if task.created_by else '—' }}
+                <span style="font-size:11px;color:var(--text-muted)">
+                    · {{ task.created_at.strftime('%d.%m.%Y') }}
+                </span>
+            </div>
+        </div>
+        {% if task.description %}
+        <div class="info-cell" style="grid-column:1/-1;border-right:none">
+            <div class="info-label">Описание задачи</div>
+            <div class="info-value" style="line-height:1.6">{{ task.description }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Вложение офиса #}
+    {% if task.attachment %}
+    <div style="margin-bottom:16px">
+        <a href="{{ url_for('service.download_attachment', task_id=task.id) }}"
+           class="btn btn--ghost btn--sm">
+            📎 {{ task.attachment_name }}
+        </a>
+    </div>
+    {% endif %}
+
+    {# Инженеры #}
+    <div class="section-block">
+        <div class="section-block-header">
+            Назначенные инженеры
+            <span style="color:var(--text-muted)">{{ task.engineers|length }}</span>
+        </div>
+        <div class="section-block-body">
+            {% if task.engineers %}
+            {% for te in task.engineers %}
+            <div class="eng-row">
+                <div class="eng-avatar">{{ te.engineer.full_name[:2].upper() }}</div>
+                <div>
+                    <div style="font-size:13px;color:var(--text-primary)">{{ te.engineer.full_name }}</div>
+                    <div style="font-size:10px;color:var(--text-muted)">Инженер</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="font-size:12px;color:var(--text-muted)">Инженеры не назначены</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Смена статуса (офис) #}
+    {% if can_create and task.status not in ('done','failed','cancelled') %}
+    <div class="section-block" style="margin-bottom:16px">
+        <div class="section-block-header">Изменить статус</div>
+        <div class="section-block-body">
+            <form method="POST" action="{{ url_for('service.update_status', task_id=task.id) }}"
+                  style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select name="status" class="filter-select">
+                    {% for val, label in task.STATUS_CHOICES.items() %}
+                    <option value="{{ val }}" {% if task.status == val %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn--ghost btn--sm">Применить</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Отчёт сервисной службы #}
+    <div class="section-block">
+        <div class="section-block-header">
+            Отчёт сервисной службы
+            {% if task.report and task.report.verdict %}
+            <span class="verdict-{{ task.report.verdict }}">
+                {{ task.report.verdict_label }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="section-block-body">
+
+            {% if task.report and (task.report.arrived_at or task.report.verdict) %}
+            {# Показываем заполненный отчёт #}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:16px">
+                <div>
+                    <div class="info-label">Время прибытия</div>
+                    <div class="info-value">
+                        {{ task.report.arrived_at.strftime('%d.%m.%Y %H:%M') if task.report.arrived_at else '—' }}
+                    </div>
+                </div>
+                <div>
+                    <div class="info-label">Время убытия</div>
+                    <div class="info-value">
+                        {{ task.report.departed_at.strftime('%d.%m.%Y %H:%M') if task.report.departed_at else '—' }}
+                    </div>
+                </div>
+                {% if task.report.duration_minutes is not none %}
+                <div>
+                    <div class="info-label">Время на объекте</div>
+                    <div class="info-value">{{ task.report.duration_minutes }} мин</div>
+                </div>
+                {% endif %}
+                <div>
+                    <div class="info-label">Вердикт</div>
+                    <div class="info-value verdict-{{ task.report.verdict }}">
+                        {{ task.report.verdict_label }}
+                    </div>
+                </div>
+                {% if task.report.notes %}
+                <div style="grid-column:1/-1">
+                    <div class="info-label">Комментарий</div>
+                    <div class="info-value" style="line-height:1.6">{{ task.report.notes }}</div>
+                </div>
+                {% endif %}
+                {% if task.report.filled_by %}
+                <div style="grid-column:1/-1">
+                    <div style="font-size:11px;color:var(--text-muted)">
+                        Заполнил: {{ task.report.filled_by.full_name }}
+                        · {{ task.report.filled_at.strftime('%d.%m.%Y %H:%M') if task.report.filled_at else '' }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% if task.report.attachment %}
+            <a href="{{ url_for('service.download_report_attachment', task_id=task.id) }}"
+               class="btn btn--ghost btn--sm" style="margin-bottom:16px">
+                📎 {{ task.report.attachment_name }}
+            </a>
+            {% endif %}
+            {% endif %}
+
+            {# Форма заполнения (сервисная служба) #}
+            {% if can_fill_report and task.status not in ('cancelled',) %}
+            <div style="{% if task.report and task.report.verdict %}border-top:1px solid var(--border);padding-top:16px;margin-top:4px{% endif %}">
+                <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px">
+                    {% if task.report %}Обновить отчёт{% else %}Заполнить отчёт{% endif %}
+                </div>
+                <form method="POST"
+                      action="{{ url_for('service.fill_report', task_id=task.id) }}"
+                      enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Время прибытия</label>
+                            <input type="datetime-local" name="arrived_at" class="form-input"
+                                   value="{{ task.report.arrived_at.strftime('%Y-%m-%dT%H:%M') if task.report and task.report.arrived_at else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Время убытия</label>
+                            <input type="datetime-local" name="departed_at" class="form-input"
+                                   value="{{ task.report.departed_at.strftime('%Y-%m-%dT%H:%M') if task.report and task.report.departed_at else '' }}">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Вердикт *</label>
+                            <select name="verdict" class="form-select" required>
+                                <option value="">— Выберите —</option>
+                                {% for val, label in verdict_choices.items() %}
+                                <option value="{{ val }}"
+                                        {% if task.report and task.report.verdict == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Файл / фото</label>
+                            <input type="file" name="attachment" class="form-input"
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Комментарий</label>
+                        <textarea name="notes" class="form-textarea" rows="3"
+                                  placeholder="Что было сделано, какие замечания…">{{ task.report.notes if task.report else '' }}</textarea>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button type="submit" class="btn btn--primary">Сохранить отчёт</button>
+                    </div>
+                </form>
+            </div>
+            {% elif not can_fill_report and not (task.report and task.report.verdict) %}
+            <div style="font-size:12px;color:var(--text-muted)">
+                Отчёт ещё не заполнен.
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

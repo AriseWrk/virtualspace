@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Новое приходование — Склад{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Склад / Приходования</div>
+            <h1 class="page-title">Новое приходование</h1>
+        </div>
+        <a href="{{ url_for('warehouse.receipts') }}" class="btn btn--ghost">← Назад</a>
+    </div>
+
+    <form method="POST" class="form-card">
+        <div class="form-row">
+            <div class="form-group form-group--wide">
+                <label class="form-label">Поставщик</label>
+                <input type="text" name="supplier" class="form-input"
+                       placeholder="ООО ЭлектроСнаб, ИП Иванов…">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Дата прихода</label>
+                <input type="date" name="receipt_date" class="form-input"
+                       value="{{ today }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Примечание</label>
+            <textarea name="notes" class="form-textarea" rows="2"
+                      placeholder="Накладная №, договор…"></textarea>
+        </div>
+
+        <div class="form-section-title">Позиции прихода</div>
+        <div id="receipt-items">
+            <div class="order-item-row receipt-row">
+                <select name="item_id[]" class="form-select order-item-select" required>
+                    <option value="">— Выберите позицию —</option>
+                    {% for item in items %}
+                    <option value="{{ item.id }}" data-unit="{{ item.unit }}">
+                        {{ item.name }}{% if item.article %} ({{ item.article }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <input type="number" name="quantity[]" class="form-input order-qty-input"
+                       placeholder="Кол-во" step="0.001" min="0.001" required>
+                <span class="order-unit">шт</span>
+                <input type="number" name="unit_cost[]" class="form-input"
+                       placeholder="Себест." step="0.01" min="0" style="max-width:110px">
+                <span style="font-size:11px;color:var(--text-muted);min-width:14px">₽</span>
+                <button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn--ghost btn--sm" style="margin-top:10px"
+                onclick="addRow()">+ Добавить позицию</button>
+
+        <div class="form-actions">
+            <a href="{{ url_for('warehouse.receipts') }}" class="btn btn--ghost">Отмена</a>
+            <button type="submit" class="btn btn--primary">Создать черновик</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const rowTpl = document.querySelector('.receipt-row').cloneNode(true);
+
+function addRow() {
+    const r = rowTpl.cloneNode(true);
+    r.querySelectorAll('select,input').forEach(el => el.value = '');
+    r.querySelector('.order-unit').textContent = 'шт';
+    document.getElementById('receipt-items').appendChild(r);
+    bindUnit(r);
+}
+function removeRow(btn) {
+    const rows = document.querySelectorAll('.receipt-row');
+    if (rows.length > 1) btn.closest('.receipt-row').remove();
+}
+function bindUnit(row) {
+    row.querySelector('select').addEventListener('change', function() {
+        row.querySelector('.order-unit').textContent =
+            this.options[this.selectedIndex].dataset.unit || 'шт';
+    });
+}
+document.querySelectorAll('.receipt-row').forEach(bindUnit);
+</script>
+{% endblock %}

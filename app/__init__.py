@@ -22,6 +22,10 @@ def create_app(config_name="default"):
     from app.routes.server_room import server_room_bp
     from app.routes.garage import garage_bp
     from app.routes.pts import pts_bp
+    from app.routes.service import service_bp
+    from app.routes.route import route_bp
+    from app.routes.faults import faults_bp
+
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -34,5 +38,8 @@ def create_app(config_name="default"):
     app.register_blueprint(server_room_bp)
     app.register_blueprint(garage_bp)
     app.register_blueprint(pts_bp)
+    app.register_blueprint(service_bp)
+    app.register_blueprint(route_bp)
+    app.register_blueprint(faults_bp)
 
     return app

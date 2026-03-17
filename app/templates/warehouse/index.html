@@ -1,107 +1,257 @@
 {% extends "base.html" %}
 {% block title %}Склад — АБ Радонеж{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Вкладки МойСклад-стиль ── */
+.wh-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px; flex-wrap: wrap;
+}
+.wh-tab {
+    padding: 11px 20px; font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap; display: flex; align-items: center; gap: 7px;
+}
+.wh-tab:hover { color: var(--text-secondary); }
+.wh-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.wh-tab-count {
+    font-size: 9px; padding: 2px 6px; border-radius: 10px;
+    background: rgba(185,140,80,.12); color: var(--gold);
+}
+.wh-tab.active .wh-tab-count { background: rgba(185,140,80,.2); }
+
+/* ── Фильтр-строка ── */
+.stock-filters {
+    display: flex; gap: 10px; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap;
+}
+
+/* ── Таблица остатков ── */
+.stock-table th { cursor: default; }
+.stock-table th.sortable { cursor: pointer; user-select: none; }
+.stock-table th.sortable:hover { color: var(--text-secondary); }
+.td-available { font-weight: 500; }
+.td-available--ok   { color: #4caf6b !important; }
+.td-available--warn { color: var(--gold) !important; }
+.td-available--zero { color: #e06060 !important; }
+.td-price { color: var(--text-secondary) !important; font-size: 12px !important; }
+.td-location { font-size: 11px; color: var(--text-muted) !important; }
+
+/* ── Инлайн-кнопки строки ── */
+.row-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .15s; }
+.data-table tbody tr:hover .row-actions { opacity: 1; }
+
+/* ── Бейдж резерва ── */
+.reserve-badge {
+    font-size: 9px; padding: 1px 6px; border-radius: 2px;
+    background: rgba(90,140,200,.12); color: #5a8cc8;
+    letter-spacing: 1px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-wrapper">
+
     <div class="page-header">
         <div>
-            <div class="page-tag">Управление ТМЦ</div>
+            <div class="page-tag">Склад</div>
             <h1 class="page-title">Склад</h1>
         </div>
         <div class="header-actions">
-            <a href="{{ url_for('warehouse.orders') }}" class="btn btn--ghost">Заказы</a>
-            <a href="{{ url_for('warehouse.create_order') }}" class="btn btn--ghost">+ Заказ</a>
-            <a href="{{ url_for('warehouse.add_item') }}" class="btn btn--primary">+ Позиция</a>
-            <a href="{{ url_for('warehouse.export_items') }}" class="btn btn--ghost">↓ Excel</a>
+            <a href="{{ url_for('warehouse.export_stock') }}" class="btn btn--ghost btn--sm">↓ Excel</a>
+            <a href="{{ url_for('warehouse.create_item') }}" class="btn btn--primary">+ Позиция</a>
         </div>
     </div>
 
-    <form method="GET" class="filter-bar">
-        <input type="text" name="q" value="{{ search }}" placeholder="Поиск по наименованию..." class="filter-input">
-        <select name="category" class="filter-select">
+    {# ── Метрики ── #}
+    <div class="metrics-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="metric-card metric-card--accent">
+            <div class="metric-label">Позиций</div>
+            <div class="metric-value">{{ total_items }}</div>
+            <div class="metric-sub">всего на складе</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Мало на складе</div>
+            <div class="metric-value {% if low_items > 0 %}metric-value--warn{% endif %}">{{ low_items }}</div>
+            <div class="metric-sub">ниже минимума</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Сумма по себест.</div>
+            <div class="metric-value" style="font-size:24px">{{ '{:,.0f}'.format(total_cost_sum).replace(',', ' ') }} ₽</div>
+            <div class="metric-sub">учётная стоимость</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">В резерве</div>
+            <div class="metric-value">{{ reserved_count }}</div>
+            <div class="metric-sub">позиций зарезервировано</div>
+        </div>
+    </div>
+
+    {# ── Вкладки ── #}
+    <div class="wh-tabs">
+        <a href="{{ url_for('warehouse.index') }}" class="wh-tab active">
+            Остатки
+            <span class="wh-tab-count">{{ total_items }}</span>
+        </a>
+        <a href="{{ url_for('warehouse.receipts') }}" class="wh-tab">Приходования</a>
+        <a href="{{ url_for('warehouse.write_offs') }}" class="wh-tab">Списания</a>
+        <a href="{{ url_for('warehouse.movements') }}" class="wh-tab">Перемещения</a>
+        <a href="{{ url_for('warehouse.inventory') }}" class="wh-tab">Инвентаризации</a>
+        <a href="{{ url_for('warehouse.orders') }}" class="wh-tab">Заказы</a>
+    </div>
+
+    {# ── Фильтры ── #}
+    <form method="GET" class="stock-filters">
+        <input type="text" name="q" value="{{ q }}"
+               class="filter-input" placeholder="Поиск по наименованию, артикулу…"
+               style="max-width:320px">
+        <select name="cat" class="filter-select" onchange="this.form.submit()">
             <option value="">Все категории</option>
             {% for cat in categories %}
-            {% set is_active = request.args.get('category', type=int) == cat.id %}
-            {% if is_active %}
-            <option value="{{ cat.id }}" selected>{{ cat.name }}</option>
-            {% else %}
-            <option value="{{ cat.id }}">{{ cat.name }}</option>
-            {% endif %}
+            <option value="{{ cat.id }}" {% if cat_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn btn--primary">Найти</button>
-        <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost">Сброс</a>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" name="low" value="1" {% if low_stock %}checked{% endif %}
+                   onchange="this.form.submit()" style="accent-color:var(--gold)">
+            Только мало
+        </label>
+        {% if q or cat_id or low_stock %}
+        <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost btn--sm">✕ Сбросить</a>
+        {% endif %}
+        <button type="submit" class="btn btn--ghost btn--sm">Найти</button>
+
+        <div style="margin-left:auto;display:flex;gap:8px;">
+            <button type="button" class="btn btn--ghost btn--sm"
+                    onclick="toggleCatForm()">+ Категория</button>
+        </div>
     </form>
 
+    {# ── Форма добавления категории (скрытая) ── #}
+    <div id="cat-form" style="display:none;margin-bottom:16px">
+        <form method="POST" action="{{ url_for('warehouse.add_category') }}"
+              style="display:flex;gap:10px;align-items:flex-end;background:var(--bg-surface);
+                     border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;">
+            <div class="form-group" style="margin:0;flex:1;min-width:180px">
+                <label class="form-label">Название категории</label>
+                <input type="text" name="name" class="form-input" required placeholder="Кабели, Крепёж…">
+            </div>
+            <button type="submit" class="btn btn--primary btn--sm">Добавить</button>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="toggleCatForm()">Отмена</button>
+        </form>
+    </div>
+
+    {# ── Таблица ── #}
     {% if items %}
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table stock-table">
             <thead>
                 <tr>
                     <th>Наименование</th>
                     <th>Артикул</th>
                     <th>Категория</th>
-                    <th>Кол-во</th>
+                    <th style="text-align:right">Остаток</th>
+                    <th style="text-align:right">Резерв</th>
+                    <th style="text-align:right">Ожидание</th>
+                    <th style="text-align:right">Доступно</th>
                     <th>Ед.</th>
+                    <th style="text-align:right">Себест.</th>
+                    <th style="text-align:right">Цена</th>
                     <th>Место</th>
-                    <th>Статус</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items %}
-                {% if item.is_low_stock %}
-                <tr class="row--warn">
-                {% else %}
-                <tr>
-                {% endif %}
+                <tr class="{% if item.is_low_stock %}row--warn{% endif %}">
                     <td class="td-name">{{ item.name }}</td>
-                    <td class="td-muted">{{ item.article or '—' }}</td>
-                    <td class="td-muted">{{ item.category.name if item.category else '—' }}</td>
-                    {% if item.is_low_stock %}
-                    <td class="td-qty td-qty--low">
-                    {% else %}
-                    <td class="td-qty">
-                    {% endif %}
-                        {{ item.quantity | int if item.quantity == item.quantity | int else item.quantity }}
+                    <td class="td-muted" style="font-size:11px">{{ item.article or '—' }}</td>
+                    <td class="td-muted" style="font-size:11px">
+                        {{ item.category.name if item.category else '—' }}
                     </td>
-                    <td class="td-muted">{{ item.unit }}</td>
-                    <td class="td-muted">{{ item.location or '—' }}</td>
-                    <td>
-                        {% if item.is_low_stock %}
-                        <span class="badge badge--warn">Мало</span>
-                        {% else %}
-                        <span class="badge badge--ok">В норме</span>
-                        {% endif %}
+                    <td style="text-align:right">
+                        <span class="td-qty {% if item.is_low_stock %}td-qty--low{% endif %}">
+                            {{ item.quantity | int if item.quantity == item.quantity | int else item.quantity }}
+                        </span>
                     </td>
+                    <td style="text-align:right">
+                        {% if item.reserved_qty > 0 %}
+                        <span class="reserve-badge">{{ item.reserved_qty | int }}</span>
+                        {% else %}<span class="td-muted">—</span>{% endif %}
+                    </td>
+                    <td style="text-align:right">
+                        {% if item.incoming_qty > 0 %}
+                        <span style="font-size:11px;color:#4caf6b">+{{ item.incoming_qty | int }}</span>
+                        {% else %}<span class="td-muted">—</span>{% endif %}
+                    </td>
+                    <td style="text-align:right">
+                        {% set avail = item.available_qty %}
+                        <span class="td-available
+                            {% if avail <= 0 %}td-available--zero
+                            {% elif item.is_low_stock %}td-available--warn
+                            {% else %}td-available--ok{% endif %}">
+                            {{ avail | int if avail == avail | int else avail }}
+                        </span>
+                    </td>
+                    <td class="td-muted" style="font-size:11px">{{ item.unit }}</td>
+                    <td class="td-price" style="text-align:right">
+                        {% if item.cost_price %}{{ '{:,.2f}'.format(item.cost_price).replace(',', ' ') }} ₽{% else %}—{% endif %}
+                    </td>
+                    <td class="td-price" style="text-align:right">
+                        {% if item.sale_price %}{{ '{:,.2f}'.format(item.sale_price).replace(',', ' ') }} ₽{% else %}—{% endif %}
+                    </td>
+                    <td class="td-location">{{ item.location or '—' }}</td>
                     <td class="td-actions">
-                        <a href="{{ url_for('warehouse.edit_item', item_id=item.id) }}" class="action-link">Ред.</a>
-                        <form method="POST" action="{{ url_for('warehouse.delete_item', item_id=item.id) }}"
-                              style="display:inline"
-                              onsubmit="return confirm('Удалить позицию?')">
-                            <button type="submit" class="action-link action-link--danger">Удал.</button>
-                        </form>
+                        <div class="row-actions">
+                            <a href="{{ url_for('warehouse.edit_item', item_id=item.id) }}"
+                               class="action-link">Изменить</a>
+                            <form method="POST"
+                                  action="{{ url_for('warehouse.delete_item', item_id=item.id) }}"
+                                  onsubmit="return confirm('Удалить «{{ item.name }}»?')">
+                                <button type="submit" class="action-link action-link--danger">Удалить</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <div class="table-footer">Всего позиций: {{ items|length }}</div>
+    <div class="table-footer">
+        Позиций: {{ items|length }}
+        {% if low_items > 0 %}
+        &nbsp;·&nbsp;
+        <span style="color:#e06060">{{ low_items }} ниже минимума</span>
+        {% endif %}
+    </div>
 
     {% else %}
     <div class="empty-state">
         <div class="empty-icon">📦</div>
         <div class="empty-text">
-            {% if search %}
-            Ничего не найдено по запросу «{{ search }}»
-            {% else %}
-            Склад пуст
-            {% endif %}
+            {% if q or cat_id or low_stock %}Ничего не найдено{% else %}Склад пуст{% endif %}
         </div>
-        <a href="{{ url_for('warehouse.add_item') }}" class="btn btn--primary">Добавить позицию</a>
+        {% if not q and not cat_id and not low_stock %}
+        <a href="{{ url_for('warehouse.create_item') }}" class="btn btn--primary" style="margin-top:16px">
+            Добавить первую позицию
+        </a>
+        {% endif %}
     </div>
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleCatForm() {
+    const f = document.getElementById('cat-form');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+</script>
 {% endblock %}

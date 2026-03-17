@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     {% block extra_css %}{% endblock %}
     <script>
-        /* Применяем тему ДО рендера страницы — без мигания */
         (function() {
             const t = localStorage.getItem('ab_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);
@@ -26,62 +25,93 @@
         <span class="logo-text">АБ РАДОНЕЖ</span>
         <span class="logo-dot"></span>
         <div class="nav-links">
+
             <a href="{{ url_for('dashboard.index') }}"
                class="nav-item {% if request.blueprint == 'dashboard' %}active{% endif %}">
                 Главная
             </a>
+
             {% if current_user.has_warehouse_access() %}
             <a href="{{ url_for('warehouse.index') }}"
                class="nav-item {% if request.blueprint == 'warehouse' %}active{% endif %}">
                 Склад
             </a>
             {% endif %}
+
             {% if current_user.role in ('engineer', 'director') %}
             <a href="{{ url_for('engineer.dashboard') }}"
                class="nav-item {% if request.blueprint == 'engineer' %}active{% endif %}">
                 Инженер
             </a>
             {% endif %}
+
             {% if current_user.role in ('designer', 'director') %}
             <a href="{{ url_for('designer.dashboard') }}"
                class="nav-item {% if request.blueprint == 'designer' %}active{% endif %}">
                 Проектировщик
             </a>
             {% endif %}
+
+            {# Проекты — видят все кроме только-склад и гаража #}
+            {% if current_user.role in ('engineer', 'designer', 'office', 'pts', 'director') %}
+            <a href="{{ url_for('engineer.projects') }}"
+               class="nav-item {% if request.endpoint and 'engineer.project' in request.endpoint %}active{% endif %}">
+                Проекты
+            </a>
+            {% endif %}
+
+            {# Сервисная служба #}
+            {% if current_user.role in ('office', 'service', 'pts', 'engineer', 'director') %}
+            <a href="{{ url_for('service.dashboard') }}"
+               class="nav-item {% if request.blueprint == 'service' %}active{% endif %}">
+                Сервис
+            </a>
+            {% endif %}
+
             {% if current_user.role in ('office', 'pts', 'director') %}
             <a href="{{ url_for('pts.dashboard') }}"
                class="nav-item {% if request.blueprint == 'pts' %}active{% endif %}">
                 ПТС
             </a>
             {% endif %}
+
             <a href="{{ url_for('academy.dashboard') }}"
                class="nav-item {% if request.blueprint == 'academy' %}active{% endif %}">
                 Обучение
             </a>
+
             <a href="{{ url_for('utilities.dashboard') }}"
                class="nav-item {% if request.blueprint == 'utilities' %}active{% endif %}">
                 Утилиты
             </a>
+
             <a href="{{ url_for('garage.dashboard') }}"
                class="nav-item {% if request.blueprint == 'garage' %}active{% endif %}">
                 Гараж
             </a>
+
             {% if current_user.role in ('engineer', 'designer', 'director') %}
             <a href="{{ url_for('server_room.dashboard') }}"
                class="nav-item {% if request.blueprint == 'server_room' %}active{% endif %}">
                 Серверная
             </a>
             {% endif %}
+
             {% if current_user.role == 'director' %}
             <a href="{{ url_for('admin.users') }}"
                class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">
                 Админ
             </a>
             {% endif %}
+
         </div>
     </div>
     <div class="topbar-right">
         <a href="{{ url_for('auth.change_password') }}" class="btn-logout" title="Сменить пароль">&#128273;</a>
+        {% if current_user.role == 'director' %}
+        <a href="{{ url_for('admin.settings') }}" class="btn-logout"
+           title="Настройки системы">&#9881;</a>
+        {% endif %}
         <div class="user-chip">
             <div class="user-info">
                 <div class="user-name">{{ current_user.full_name }}</div>

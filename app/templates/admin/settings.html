@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Настройки — Админ{% endblock %}
+
+{% block content %}
+<div class="page-wrapper page-wrapper--narrow">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Админ</div>
+            <h1 class="page-title">Настройки системы</h1>
+        </div>
+        <a href="{{ url_for('admin.users') }}" class="btn btn--ghost">← Пользователи</a>
+    </div>
+
+    <form method="POST" class="form-card">
+        <div class="form-section-title">Сервисная служба — Маршруты</div>
+
+        <div class="form-group">
+            <label class="form-label">Адрес офиса (начальная точка маршрута) *</label>
+            <input type="text" name="office_address" class="form-input"
+                   value="{{ settings.office_address }}"
+                   placeholder="г. Москва, ул. Примерная, 1">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px">
+                Используется как стартовая точка при построении маршрута объезда.
+            </div>
+        </div>
+
+        <div class="form-section-title">Яндекс API</div>
+
+        <div class="form-group">
+            <label class="form-label">Ключ Яндекс Карты JS API</label>
+            <input type="text" name="yandex_maps_key" class="form-input"
+                   value="{{ settings.yandex_maps_key }}"
+                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px">
+                Нужен для отображения карты. Получить:
+                <a href="https://developer.tech.yandex.ru/" target="_blank"
+                   style="color:var(--gold)">developer.tech.yandex.ru →</a>
+                (бесплатно до 25 000 запросов/день)
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Ключ Яндекс Геокодер API</label>
+            <input type="text" name="yandex_geo_key" class="form-input"
+                   value="{{ settings.yandex_geo_key }}"
+                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px">
+                Нужен для геокодирования адресов (перевод адреса в координаты).
+                Тот же ключ или отдельный — на том же сервисе.
+            </div>
+        </div>
+
+        {% if settings.office_address and settings.yandex_maps_key %}
+        <div style="background:rgba(45,106,58,.08);border:1px solid rgba(45,106,58,.2);
+                    border-radius:var(--radius);padding:12px 16px;margin-top:4px">
+            <span style="color:#4caf6b;font-size:12px">✓ Маршруты настроены и готовы к работе</span>
+        </div>
+        {% else %}
+        <div style="background:rgba(185,140,80,.08);border:1px solid rgba(185,140,80,.2);
+                    border-radius:var(--radius);padding:12px 16px;margin-top:4px">
+            <span style="color:var(--gold);font-size:12px">
+                ⚠ Заполните адрес офиса и ключи API для работы маршрутов
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Сохранить настройки</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

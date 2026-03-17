@@ -1,22 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Сеть — Серверная{% endblock %}
+{% block title %}Сетевая карта — АБ Радонеж{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
 <style>
-.theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
-.theme-server .page-tag{color:#3cb478}
+    /* ТВОИ РОДНЫЕ СТИЛИ */
+    .theme-server .sidebar-link.active{background:rgba(60,180,120,.06);color:#3cb478;border-left-color:#3cb478}
+    .theme-server .page-tag{color:#3cb478}
+
+    /* Контейнер для карты */
+    #network-map {
+        width: 100%;
+        height: calc(100vh - 150px); /* Высота во весь экран за вычетом шапки */
+        background-color: #0d0d0f;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Легенда */
+    .map-legend {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(15, 15, 17, 0.8);
+        padding: 10px 15px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 11px;
+        color: #8a8680;
+        pointer-events: none; /* Чтобы не мешала кликать по карте */
+    }
+    .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="page-with-sidebar theme-server">
     {% include "server_room/_sidebar.html" %}
+
     <div class="sidebar-content">
-        <div class="page-tag">Серверная</div>
-        <h1 class="page-title">Сеть</h1>
-        <div class="empty-state" style="margin-top:24px">
-            <div class="empty-icon">🌐</div>
-            <div class="empty-text">Схема сети в разработке</div>
+        <div class="page-header">
+            <div>
+                <div class="page-tag">Инфраструктура</div>
+                <h1 class="page-title">Сетевая топология (Карта)</h1>
+            </div>
+            <div class="page-meta">
+                <div class="online-badge"><span class="pulse" id="map-pulse" style="background: #2d6a3a"></span>Live View</div>
+            </div>
+        </div>
+
+        <div id="network-map">
+            <div style="color: #4a4845; text-align: center; padding-top: 100px;">Загрузка карты узлов...</div>
+        </div>
+
+        <div class="map-legend">
+            <div class="legend-item"><div class="status-dot" style="background: #2d6a3a"></div> Онлайн</div>
+            <div class="legend-item"><div class="status-dot" style="background: #8a3030"></div> Офлайн</div>
+            <div class="legend-item"><div class="status-dot" style="background: #4a4845"></div> Проверка</div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    var network = null;
+    var nodes = null;
+    var edges = null;
+
+    function drawMap() {
+        // 1. Получаем данные от API
+        fetch("{{ url_for('server_room.network_data') }}")
+            .then(r => r.json())
+            .then(data => {
+                // Конвертируем JSON в объекты Vis.js
+                nodes = new vis.DataSet(data.nodes);
+                edges = new vis.DataSet(data.edges);
+
+                var container = document.getElementById('network-map');
+                var mapData = { nodes: nodes, edges: edges };
+
+                // Настройки карты (физика, стили)
+                var options = {
+                    interaction: { hover: true, tooltipDelay: 200 },
+                    physics: {
+                        enabled: true,
+                        solver: 'barnesHut',
+                        barnesHut: { gravitationalConstant: -3000, centralGravity: 0.1, springLength: 150 },
+                        stabilization: { iterations: 100 }
+                    },
+                    nodes: { font: { color: '#8a8680', size: 12, multi: true, align: 'center' } },
+                    edges: { width: 1 }
+                };
+
+                // Инициализируем карту
+                network = new vis.Network(container, mapData, options);
+
+                // Сразу запускаем обновление статусов
+                updateStatus();
+                // И ставим таймер на обновление каждые 15 сек
+                setInterval(updateStatus, 15000);
+            });
+    }
+
+    function updateStatus() {
+        const pulse = document.getElementById('map-pulse');
+        pulse.style.background = '#f1c40f'; // Желтый во время проверки
+
+        // Используем существующий API статусов
+        fetch("{{ url_for('server_room.get_realtime_status') }}")
+            .then(r => r.json())
+            .then(data => {
+                // Данные теперь приходят в формате {sys: {...}, servers: [...]}
+                // Нам нужен массив servers (или data, если ты не обновил server_room_bp.route("/status"))
+                let statusData = data.servers || data; // Обработка обоих форматов
+
+                statusData.forEach(srv => {
+                    if (nodes.get(srv.id)) { // Если узел есть на карте
+                        let newColor = (srv.status === 'online') ? '#2d6a3a' : '#8a3030';
+                        // Точечно обновляем цвет иконки и связи
+                        nodes.update({id: srv.id, icon: {color: newColor}});
+                        edges.update({id: `edge-${srv.id}`, color: {color: newColor}});
+                    }
+                });
+                pulse.style.background = '#2d6a3a'; // Зеленый после проверки
+            });
+    }
+
+    // Запускаем всё, когда DOM готов
+    document.addEventListener("DOMContentLoaded", drawMap);
+</script>
 {% endblock %}

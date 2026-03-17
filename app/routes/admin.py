@@ -1,15 +1,15 @@
+from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
 from app.extensions import db
 from app.models.user import User
 from app.models.warehouse import Category
+from app.models.app_settings import AppSettings
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def admin_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
         if current_user.role != "director":
@@ -57,7 +57,7 @@ def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     if request.method == "POST":
         user.full_name = request.form["full_name"].strip()
-        user.role = request.form["role"]
+        user.role      = request.form["role"]
         user.is_active = "is_active" in request.form
 
         new_password = request.form.get("password", "").strip()
@@ -128,7 +128,7 @@ def create_category():
 @admin_required
 def edit_category(cat_id):
     cat = Category.query.get_or_404(cat_id)
-    cat.name = request.form.get("name", cat.name).strip()
+    cat.name        = request.form.get("name", cat.name).strip()
     cat.description = request.form.get("description", "").strip() or None
     db.session.commit()
     flash(f"Категория «{cat.name}» обновлена.", "success")
@@ -146,3 +146,23 @@ def delete_category(cat_id):
     db.session.commit()
     flash(f"Категория «{cat.name}» удалена.", "success")
     return redirect(url_for("admin.categories"))
+
+
+# ========== НАСТРОЙКИ СИСТЕМЫ ==========
+
+@admin_bp.route("/settings", methods=["GET", "POST"])
+@admin_required
+def settings():
+    if request.method == "POST":
+        for key in ("office_address", "yandex_maps_key", "yandex_geo_key"):
+            AppSettings.set(key, request.form.get(key, "").strip())
+        db.session.commit()
+        flash("Настройки сохранены.", "success")
+        return redirect(url_for("admin.settings"))
+
+    settings_obj = type("S", (), {
+        "office_address":  AppSettings.get("office_address"),
+        "yandex_maps_key": AppSettings.get("yandex_maps_key"),
+        "yandex_geo_key":  AppSettings.get("yandex_geo_key"),
+    })()
+    return render_template("admin/settings.html", settings=settings_obj)

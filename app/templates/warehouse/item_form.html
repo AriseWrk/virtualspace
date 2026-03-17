@@ -6,7 +6,9 @@
     <div class="page-header">
         <div>
             <div class="page-tag">Склад</div>
-            <h1 class="page-title">{% if item %}Редактировать позицию{% else %}Добавить позицию{% endif %}</h1>
+            <h1 class="page-title">
+                {% if item %}Редактировать позицию{% else %}Новая позиция{% endif %}
+            </h1>
         </div>
         <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost">← Назад</a>
     </div>
@@ -16,21 +18,25 @@
             <div class="form-group form-group--wide">
                 <label class="form-label">Наименование *</label>
                 <input type="text" name="name" class="form-input" required
-                       value="{{ item.name if item else '' }}" placeholder="Кабель ВВГнг 3×2.5...">
+                       value="{{ item.name if item else '' }}"
+                       placeholder="Кабель ВВГнг 3×2.5…">
             </div>
             <div class="form-group">
                 <label class="form-label">Артикул</label>
                 <input type="text" name="article" class="form-input"
-                       value="{{ item.article if item else '' }}" placeholder="VVG-325">
+                       value="{{ item.article if item else '' }}"
+                       placeholder="VVG-325">
             </div>
         </div>
+
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Категория</label>
                 <select name="category_id" class="form-select">
                     <option value="">— Без категории —</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if item and item.category_id == cat.id %}selected{% endif %}>
+                    <option value="{{ cat.id }}"
+                            {% if item and item.category_id == cat.id %}selected{% endif %}>
                         {{ cat.name }}
                     </option>
                     {% endfor %}
@@ -40,34 +46,60 @@
                 <label class="form-label">Единица измерения *</label>
                 <select name="unit" class="form-select">
                     {% for u in ['шт', 'м', 'м²', 'м³', 'кг', 'л', 'уп', 'рул', 'компл'] %}
-                    {% set is_selected = (item and item.unit == u) or (not item and u == 'шт') %}
-                    <option value="{{ u }}" {% if is_selected %}selected{% endif %}>{{ u }}</option>
+                    {% set is_sel = (item and item.unit == u) or (not item and u == 'шт') %}
+                    <option value="{{ u }}" {% if is_sel %}selected{% endif %}>{{ u }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
+
+        <div class="form-section-title">Остатки</div>
         <div class="form-row">
+            {% if not item %}
             <div class="form-group">
-                <label class="form-label">Количество *</label>
+                <label class="form-label">Начальное количество</label>
                 <input type="number" name="quantity" class="form-input"
-                       step="0.01" min="0" required value="{{ item.quantity if item else 0 }}">
+                       step="0.001" min="0" value="0">
             </div>
+            {% endif %}
             <div class="form-group">
                 <label class="form-label">Минимальный остаток</label>
                 <input type="number" name="min_quantity" class="form-input"
-                       step="0.01" min="0" value="{{ item.min_quantity if item else 0 }}">
+                       step="0.001" min="0"
+                       value="{{ item.min_quantity if item else 0 }}">
             </div>
             <div class="form-group">
                 <label class="form-label">Место хранения</label>
                 <input type="text" name="location" class="form-input"
-                       value="{{ item.location if item else '' }}" placeholder="Стеллаж А-3">
+                       value="{{ item.location if item else '' }}"
+                       placeholder="Стеллаж А-3">
             </div>
         </div>
+
+        <div class="form-section-title">Цены</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Себестоимость, ₽</label>
+                <input type="number" name="cost_price" class="form-input"
+                       step="0.01" min="0"
+                       value="{{ item.cost_price if item else 0 }}"
+                       placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Цена продажи, ₽</label>
+                <input type="number" name="sale_price" class="form-input"
+                       step="0.01" min="0"
+                       value="{{ item.sale_price if item else 0 }}"
+                       placeholder="0.00">
+            </div>
+        </div>
+
         <div class="form-group">
             <label class="form-label">Примечание</label>
             <textarea name="notes" class="form-textarea" rows="3"
-                      placeholder="Дополнительная информация...">{{ item.notes if item else '' }}</textarea>
+                      placeholder="Дополнительная информация…">{{ item.notes if item else '' }}</textarea>
         </div>
+
         <div class="form-actions">
             <a href="{{ url_for('warehouse.index') }}" class="btn btn--ghost">Отмена</a>
             <button type="submit" class="btn btn--primary">

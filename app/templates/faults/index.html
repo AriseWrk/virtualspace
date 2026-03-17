@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}База неисправностей — Инженер{% endblock %}
+
+{% block extra_css %}
+<style>
+.fault-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 10px;
+    display: block; text-decoration: none; color: inherit;
+    transition: border-color .15s;
+}
+.fault-card:hover { border-color: rgba(185,140,80,.4); color: inherit; }
+.fault-title { font-size:14px; color:var(--text-primary); margin-bottom:5px; font-weight:400; }
+.fault-symptoms { font-size:12px; color:var(--text-muted); margin-bottom:8px;
+                  overflow:hidden; display:-webkit-box; -webkit-line-clamp:2;
+                  -webkit-box-orient:vertical; }
+.fault-meta { display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:var(--text-muted); }
+.fault-tag {
+    background:rgba(185,140,80,.1); color:var(--gold);
+    padding:1px 8px; border-radius:10px; font-size:10px;
+}
+.cat-badge {
+    font-size:9px; letter-spacing:1.5px; text-transform:uppercase;
+    padding:2px 8px; border-radius:2px;
+    background:rgba(90,140,200,.12); color:#5a8cc8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <div class="page-tag">Инженер</div>
+            <h1 class="page-title">База неисправностей</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('faults.create') }}" class="btn btn--primary">+ Добавить запись</a>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <input type="text" id="fault-search" class="filter-input"
+               placeholder="Поиск по симптомам, оборудованию, тегам…"
+               value="{{ q }}" oninput="filterFaults(this.value)"
+               style="max-width:320px">
+
+        <select class="filter-select" onchange="location.href=this.value">
+            <option value="{{ url_for('faults.index', q=q) }}">Все категории</option>
+            {% for key, label in categories.items() %}
+            <option value="{{ url_for('faults.index', q=q, cat=key) }}"
+                    {{ 'selected' if category == key else '' }}>
+                {{ label }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;
+                      color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" style="accent-color:var(--gold)"
+                   {% if my_only %}checked{% endif %}
+                   onchange="location.href='{{ url_for('faults.index', q=q, cat=category) }}&my=' + (this.checked?1:0)">
+            Только мои
+        </label>
+
+        {% if q or category or my_only %}
+        <a href="{{ url_for('faults.index') }}" class="btn btn--ghost btn--sm">✕ Сбросить</a>
+        {% endif %}
+    </div>
+
+    {% if records %}
+    <div id="faults-list">
+        {% for rec in records %}
+        <a href="{{ url_for('faults.detail', rec_id=rec.id) }}" class="fault-card"
+           data-search="{{ (rec.title ~ ' ' ~ rec.symptoms ~ ' ' ~ (rec.equipment or '') ~ ' ' ~ (rec.tags or '')) | lower }}">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px">
+                <div class="fault-title">{{ rec.title }}</div>
+                <span class="cat-badge">{{ rec.category_label }}</span>
+            </div>
+            <div class="fault-symptoms">{{ rec.symptoms }}</div>
+            <div class="fault-meta">
+                {% if rec.equipment %}
+                <span>🔧 {{ rec.equipment }}</span>
+                {% endif %}
+                <span>{{ rec.author.full_name if rec.author else '—' }}</span>
+                <span>{{ rec.created_at.strftime('%d.%m.%Y') }}</span>
+                <span>👁 {{ rec.views }}</span>
+                {% for tag in rec.tag_list[:4] %}
+                <span class="fault-tag">{{ tag }}</span>
+                {% endfor %}
+                {% if not rec.is_public %}
+                <span style="color:var(--text-muted);font-size:10px">🔒 Личная</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="table-footer" id="fault-count">Записей: {{ records|length }}</div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔧</div>
+        <div class="empty-text">
+            {% if q %}Ничего не найдено{% else %}База неисправностей пуста{% endif %}
+        </div>
+        <a href="{{ url_for('faults.create') }}" class="btn btn--primary" style="margin-top:16px">
+            Добавить первую запись
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterFaults(q) {
+    q = q.toLowerCase().trim();
+    var cards = document.querySelectorAll('.fault-card');
+    var cnt = 0;
+    cards.forEach(function(c) {
+        var match = !q || (c.dataset.search || '').indexOf(q) !== -1;
+        c.style.display = match ? '' : 'none';
+        if (match) cnt++;
+    });
+    var el = document.getElementById('fault-count');
+    if (el) el.textContent = 'Записей: ' + cnt;
+}
+</script>
+{% endblock %}
